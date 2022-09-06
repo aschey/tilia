@@ -24,55 +24,62 @@ impl Writer {
         (Self, WorkerGuard)
     }
 
+    pub fn disabled() -> (Self, WorkerGuard) {
+        (Self, WorkerGuard)
+    }
+
     fn init(sock_name: String, mut rx: Receiver<Command>) {
-        let handle = tokio::spawn(async move {
-            loop {
-                state::IS_CONNECTED.swap(false, Ordering::SeqCst);
-                let mut last_connect = tokio::time::Instant::now();
+        // need to ensure we don't panic if this is called outside of the tokio runtime
+        if let Ok(rt) = tokio::runtime::Handle::try_current() {
+            let handle = rt.spawn(async move {
+                loop {
+                    state::IS_CONNECTED.swap(false, Ordering::SeqCst);
+                    let mut last_connect = tokio::time::Instant::now();
 
-                let mut client = match Endpoint::connect(&sock_name).await {
-                    Ok(client) => client,
-                    Err(_) => loop {
-                        tokio::select! {
-                            client = Endpoint::connect(&sock_name), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
-                                match client {
-                                    Ok(client) => break client,
-                                    Err(_) => {
-                                        last_connect = tokio::time::Instant::now();
+                    let mut client = match Endpoint::connect(&sock_name).await {
+                        Ok(client) => client,
+                        Err(_) => loop {
+                            tokio::select! {
+                                client = Endpoint::connect(&sock_name), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
+                                    match client {
+                                        Ok(client) => break client,
+                                        Err(_) => {
+                                            last_connect = tokio::time::Instant::now();
+                                        }
                                     }
-                                }
-                            },
-                            cmd = rx.recv() => {
-                                match cmd {
-                                    Some(Command::Write(_)) => {},
-                                    _ => {
-                                        return;
-                                    },
+                                },
+                                cmd = rx.recv() => {
+                                    match cmd {
+                                        Some(Command::Write(_)) => {},
+                                        _ => {
+                                            return;
+                                        },
 
-                                }
-                            },
-                            _ =  tokio::time::sleep(Duration::from_millis(1000)) => {},
-                        }
-                    },
-                };
+                                    }
+                                },
+                                _ =  tokio::time::sleep(Duration::from_millis(1000)) => {},
+                            }
+                        },
+                    };
 
-                state::IS_CONNECTED.swap(true, Ordering::SeqCst);
-                while let Some(cmd) = rx.recv().await {
-                    match cmd {
-                        Command::Write(buf) => {
-                            if client.write_all(&buf).await.is_err() {
-                                break;
-                            };
-                        }
-                        Command::Flush => {
-                            let _ = client.flush().await;
-                            return;
+                    state::IS_CONNECTED.swap(true, Ordering::SeqCst);
+                    while let Some(cmd) = rx.recv().await {
+                        match cmd {
+                            Command::Write(buf) => {
+                                if client.write_all(&buf).await.is_err() {
+                                    break;
+                                };
+                            }
+                            Command::Flush => {
+                                let _ = client.flush().await;
+                                return;
+                            }
                         }
                     }
                 }
-            }
-        });
-        state::HANDLE.set(handle).unwrap();
+            });
+            state::HANDLE.set(handle).unwrap();
+        }
     }
 }
 
