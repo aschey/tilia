@@ -11,15 +11,15 @@ pub struct Writer;
 impl Writer {
     pub fn new(app_name: &str) -> (Self, WorkerGuard) {
         #[cfg(unix)]
-        let sock_name = format!("/tmp/{app_name}.sock");
+        let sock_path = format!("/tmp/{app_name}logs.sock");
         #[cfg(windows)]
-        let sock_name = format!("\\\\.\\pipe\\{app_name}");
+        let sock_path = format!("\\\\.\\pipe\\{app_name}logs");
 
         if !state::IS_INITIALIZED.swap(true, Ordering::SeqCst) {
             let (tx, rx) = tokio::sync::mpsc::channel(32);
             state::SENDER.get_or_init(|| tx);
 
-            Self::init(sock_name, rx);
+            Self::init(sock_path, rx);
         }
         (Self, WorkerGuard)
     }
@@ -28,7 +28,7 @@ impl Writer {
         (Self, WorkerGuard)
     }
 
-    fn init(sock_name: String, mut rx: Receiver<Command>) {
+    fn init(sock_path: String, mut rx: Receiver<Command>) {
         // need to ensure we don't panic if this is called outside of the tokio runtime
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             let handle = rt.spawn(async move {
@@ -36,11 +36,11 @@ impl Writer {
                     state::IS_CONNECTED.swap(false, Ordering::SeqCst);
                     let mut last_connect = tokio::time::Instant::now();
 
-                    let mut client = match Endpoint::connect(&sock_name).await {
+                    let mut client = match Endpoint::connect(&sock_path).await {
                         Ok(client) => client,
                         Err(_) => loop {
                             tokio::select! {
-                                client = Endpoint::connect(&sock_name), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
+                                client = Endpoint::connect(&sock_path), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
                                     match client {
                                         Ok(client) => break client,
                                         Err(_) => {
