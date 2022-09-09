@@ -9,9 +9,9 @@ use tokio::{
 
 pub async fn run_ipc_server(app_name: &str, tx: Sender<String>) {
     #[cfg(unix)]
-    let sock_name = format!("/tmp/{app_name}.sock");
+    let sock_name = format!("/tmp/{app_name}logs.sock");
     #[cfg(windows)]
-    let sock_name = format!("\\\\.\\pipe\\{app_name}");
+    let sock_name = format!("\\\\.\\pipe\\{app_name}logs");
 
     let mut endpoint = Endpoint::new(sock_name);
     endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
