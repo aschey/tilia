@@ -93,23 +93,22 @@ impl MakeWriter<'_> for Writer {
 
 impl std::io::Write for Writer {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let b = buf.to_owned();
-
-        tokio::spawn(async move {
-            if let Err(e) = state::SENDER.get().unwrap().send(Command::Write(b)).await {
-                println!("IpcWriterInstance Err writing {e}");
+        if let Some(sender) = state::SENDER.get() {
+            let b = buf.to_owned();
+            if let Err(e) = sender.try_send(Command::Write(b)) {
+                println!("Error sending: {e:?}");
             }
-        });
+        }
 
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        tokio::spawn(async move {
-            if let Err(e) = state::SENDER.get().unwrap().send(Command::Flush).await {
-                println!("IpcWriterInstance Err flushing {e:?}");
+        if let Some(sender) = state::SENDER.get() {
+            if let Err(e) = sender.try_send(Command::Flush) {
+                println!("Error sending: {e:?}");
             }
-        });
+        }
 
         Ok(())
     }
