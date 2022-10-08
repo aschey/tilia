@@ -120,9 +120,7 @@ impl std::io::Write for Writer {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         if let Some(sender) = state::SENDER.get() {
             let b = buf.to_owned();
-            if let Err(e) = sender.try_send(Command::Write(b)) {
-                warn!("Unable to send write message: {e:?}");
-            }
+            let _ = sender.try_send(Command::Write(b));
         }
 
         Ok(buf.len())
@@ -130,9 +128,7 @@ impl std::io::Write for Writer {
 
     fn flush(&mut self) -> std::io::Result<()> {
         if let Some(sender) = state::SENDER.get() {
-            if let Err(e) = sender.try_send(Command::Flush) {
-                warn!("Unable to send flush message: {e:?}");
-            }
+            let _ = sender.try_send(Command::Flush);
         }
 
         Ok(())
