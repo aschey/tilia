@@ -2,7 +2,7 @@ use std::{marker::PhantomData, sync::atomic::Ordering};
 
 use tracing::subscriber::Interest;
 
-use crate::state;
+use crate::state::{self, ConnectState};
 
 pub struct Filter<F, S>
 where
@@ -33,7 +33,7 @@ where
         meta: &tracing::Metadata<'_>,
         cx: &tracing_subscriber::layer::Context<'_, S>,
     ) -> bool {
-        if state::IS_CONNECTED.load(Ordering::SeqCst) {
+        if state::CONNECT_STATE.load(Ordering::SeqCst) != ConnectState::DISABLED {
             self.inner.enabled(meta, cx)
         } else {
             false
@@ -41,7 +41,7 @@ where
     }
 
     fn callsite_enabled(&self, meta: &'static tracing::Metadata<'static>) -> Interest {
-        if state::IS_CONNECTED.load(Ordering::SeqCst) {
+        if state::CONNECT_STATE.load(Ordering::SeqCst) != ConnectState::DISABLED {
             self.inner.callsite_enabled(meta)
         } else {
             Interest::never()

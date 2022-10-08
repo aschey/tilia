@@ -5,36 +5,43 @@ use tokio::{io::AsyncWriteExt, sync::mpsc::Receiver};
 use tracing::warn;
 use tracing_subscriber::fmt::MakeWriter;
 
-use crate::{command::Command, state, WorkerGuard};
+use crate::{
+    command::Command,
+    state::{self, ConnectState},
+    WorkerGuard,
+};
 
-pub struct Writer;
+#[derive(Clone)]
+pub struct Writer {
+    app_name: String,
+}
 
 impl Writer {
     pub fn new(app_name: &str) -> (Self, WorkerGuard) {
-        #[cfg(unix)]
-        let sock_path = format!("/tmp/{app_name}logs.sock");
-        #[cfg(windows)]
-        let sock_path = format!("\\\\.\\pipe\\{app_name}logs");
-
-        if !state::IS_INITIALIZED.swap(true, Ordering::SeqCst) {
-            let (tx, rx) = tokio::sync::mpsc::channel(32);
-            state::SENDER.get_or_init(|| tx);
-
-            Self::init(sock_path, rx);
-        }
-        (Self, WorkerGuard)
+        state::CONNECT_STATE.swap(ConnectState::NOT_CONNECTED, Ordering::SeqCst);
+        (
+            Self {
+                app_name: app_name.to_owned(),
+            },
+            WorkerGuard,
+        )
     }
 
     pub fn disabled() -> (Self, WorkerGuard) {
-        (Self, WorkerGuard)
+        (
+            Self {
+                app_name: "".to_owned(),
+            },
+            WorkerGuard,
+        )
     }
 
-    fn init(sock_path: String, mut rx: Receiver<Command>) {
+    fn init(sock_path: String, mut rx: Receiver<Command>) -> bool {
         // need to ensure we don't panic if this is called outside of the tokio runtime
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             let handle = rt.spawn(async move {
                 loop {
-                    state::IS_CONNECTED.swap(false, Ordering::SeqCst);
+                    state::CONNECT_STATE.swap(ConnectState::NOT_CONNECTED, Ordering::SeqCst);
                     let mut last_connect = tokio::time::Instant::now();
 
                     let mut client = match Endpoint::connect(&sock_path).await {
@@ -63,7 +70,7 @@ impl Writer {
                         },
                     };
 
-                    state::IS_CONNECTED.swap(true, Ordering::SeqCst);
+                    state::CONNECT_STATE.swap(ConnectState::CONNECTED, Ordering::SeqCst);
                     while let Some(cmd) = rx.recv().await {
                         match cmd {
                             Command::Write(buf) => {
@@ -80,6 +87,9 @@ impl Writer {
                 }
             });
             state::HANDLE.set(handle).unwrap();
+            true
+        } else {
+            false
         }
     }
 }
@@ -88,7 +98,21 @@ impl MakeWriter<'_> for Writer {
     type Writer = Writer;
 
     fn make_writer(&'_ self) -> Self::Writer {
-        Self
+        if !*state::IS_INITIALIZED.read().unwrap() {
+            let mut is_initialized = state::IS_INITIALIZED.write().unwrap();
+            if !*is_initialized {
+                #[cfg(unix)]
+                let sock_path = format!("/tmp/{}logs.sock", self.app_name);
+                #[cfg(windows)]
+                let sock_path = format!("\\\\.\\pipe\\{}logs", self.app_name);
+
+                let (tx, rx) = tokio::sync::mpsc::channel(32);
+                state::SENDER.get_or_init(|| tx);
+
+                *is_initialized = Self::init(sock_path, rx);
+            }
+        }
+        self.clone()
     }
 }
 
