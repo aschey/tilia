@@ -2,6 +2,7 @@ use std::{sync::atomic::Ordering, time::Duration};
 
 use parity_tokio_ipc::Endpoint;
 use tokio::{io::AsyncWriteExt, sync::mpsc::Receiver};
+use tracing::warn;
 use tracing_subscriber::fmt::MakeWriter;
 
 use crate::{command::Command, state, WorkerGuard};
@@ -96,7 +97,7 @@ impl std::io::Write for Writer {
         if let Some(sender) = state::SENDER.get() {
             let b = buf.to_owned();
             if let Err(e) = sender.try_send(Command::Write(b)) {
-                println!("Error sending: {e:?}");
+                warn!("Unable to send write message: {e:?}");
             }
         }
 
@@ -106,7 +107,7 @@ impl std::io::Write for Writer {
     fn flush(&mut self) -> std::io::Result<()> {
         if let Some(sender) = state::SENDER.get() {
             if let Err(e) = sender.try_send(Command::Flush) {
-                println!("Error sending: {e:?}");
+                warn!("Unable to send flush message: {e:?}");
             }
         }
 
