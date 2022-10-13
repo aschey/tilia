@@ -1,0 +1,13 @@
+[package]
+edition = "2021"
+name = "tracing-ipc-widget"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ansi-to-tui = "2"
+crossterm = {version = "0.25"}
+tokio = {version = "1", features = ["rt-multi-thread", "sync"]}
+tracing-ipc = {path = "../tracing-ipc"}
+tui = {version = "0.19"}

@@ -2,7 +2,6 @@ use std::{sync::atomic::Ordering, time::Duration};
 
 use parity_tokio_ipc::Endpoint;
 use tokio::{io::AsyncWriteExt, sync::mpsc::Receiver};
-use tracing::warn;
 use tracing_subscriber::fmt::MakeWriter;
 
 use crate::{
