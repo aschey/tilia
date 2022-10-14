@@ -7,6 +7,27 @@ use tui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
 
 mod stateful_list;
 
+pub struct LogViewBuilder {
+    max_logs: usize,
+    name: String,
+}
+
+impl LogViewBuilder {
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            max_logs: 1000,
+        }
+    }
+    pub fn with_max_logs(self, max_logs: usize) -> Self {
+        Self { max_logs, ..self }
+    }
+
+    pub fn build<'a>(self) -> LogView<'a> {
+        LogView::from_builder(self)
+    }
+}
+
 pub struct LogView<'a> {
     rx: tokio::sync::mpsc::Receiver<String>,
     logs: StatefulList<'a>,
@@ -14,17 +35,25 @@ pub struct LogView<'a> {
 }
 
 impl<'a> LogView<'a> {
-    pub fn new(name: String) -> Self {
+    pub fn builder(name: String) -> LogViewBuilder {
+        LogViewBuilder::new(name)
+    }
+
+    fn from_builder(builder: LogViewBuilder) -> Self {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
-            run_ipc_server(name.as_ref(), tx).await;
+            run_ipc_server(builder.name.as_ref(), tx).await;
         });
 
         Self {
             rx,
-            logs: StatefulList::new(),
+            logs: StatefulList::new(builder.max_logs),
             log_stream_running: true,
         }
+    }
+
+    pub fn new(name: String) -> Self {
+        Self::builder(name).build()
     }
 
     pub async fn update(&mut self) {

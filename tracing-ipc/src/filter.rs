@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, sync::atomic::Ordering};
 
-use tracing::subscriber::Interest;
+use tracing::{metadata::LevelFilter, subscriber::Interest};
 
 use crate::state::{self, ConnectState};
 
@@ -20,6 +20,15 @@ where
         Self {
             inner,
             _phantom: PhantomData::default(),
+        }
+    }
+}
+
+impl<S> Default for Filter<LevelFilter, S> {
+    fn default() -> Self {
+        Self {
+            inner: LevelFilter::TRACE,
+            _phantom: Default::default(),
         }
     }
 }

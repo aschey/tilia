@@ -1,4 +1,4 @@
-use std::io::Stdout;
+use std::{collections::VecDeque, io::Stdout};
 
 use tui::{
     backend::CrosstermBackend,
@@ -10,22 +10,29 @@ use tui::{
 
 pub(crate) struct StatefulList<'a> {
     state: ListState,
-    items: Vec<ListItem<'a>>,
+    items: VecDeque<ListItem<'a>>,
+    max_logs: usize,
 }
 
 impl<'a> StatefulList<'a> {
-    pub(crate) fn new() -> StatefulList<'a> {
+    pub(crate) fn new(max_logs: usize) -> StatefulList<'a> {
         let mut state = ListState::default();
         state.select(Some(0));
         StatefulList {
             state,
-            items: vec![],
+            max_logs,
+            items: VecDeque::new(),
         }
     }
 
     pub(crate) fn add_item(&mut self, item: ListItem<'a>) {
+        if self.items.len() >= self.max_logs {
+            self.items.pop_front();
+            self.previous();
+        }
+
         let len = self.items.len();
-        self.items.push(item);
+        self.items.push_back(item);
         if let Some(selected) = self.state.selected() {
             if len > 0 && selected == len - 1 {
                 self.next();
