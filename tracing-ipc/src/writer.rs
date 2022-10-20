@@ -101,9 +101,9 @@ impl MakeWriter<'_> for Writer {
             let mut is_initialized = state::IS_INITIALIZED.write().unwrap();
             if !*is_initialized {
                 #[cfg(unix)]
-                let sock_path = format!("/tmp/{}logs.sock", self.app_name);
+                let sock_path = format!("/tmp/{}_logs.sock", self.app_name);
                 #[cfg(windows)]
-                let sock_path = format!("\\\\.\\pipe\\{}logs", self.app_name);
+                let sock_path = format!("\\\\.\\pipe\\{}_logs", self.app_name);
 
                 let (tx, rx) = tokio::sync::mpsc::channel(32);
                 state::SENDER.get_or_init(|| tx);
