@@ -2,7 +2,7 @@ use std::io::Stdout;
 
 use ansi_to_tui::IntoText;
 use stateful_list::StatefulList;
-use tracing_ipc::run_ipc_server;
+use tracing_ipc::run_ipc_client;
 use tui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
 
 mod stateful_list;
@@ -42,7 +42,7 @@ impl<'a> LogView<'a> {
     fn from_builder(builder: LogViewBuilder) -> Self {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
-            run_ipc_server(builder.name.as_ref(), tx).await;
+            run_ipc_client(builder.name.as_ref(), tx).await;
         });
 
         Self {

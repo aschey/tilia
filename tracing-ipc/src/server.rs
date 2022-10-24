@@ -2,12 +2,11 @@ use std::{path::Path, time::Duration};
 
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
-use tokio::{
-    io::{split, AsyncReadExt},
-    sync::mpsc::Sender,
-};
+use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
 
-pub async fn run_ipc_server(app_name: &str, tx: Sender<String>) {
+use crate::command::Command;
+
+pub(crate) async fn run_ipc_server(app_name: String, tx: tokio::sync::broadcast::Sender<Command>) {
     #[cfg(unix)]
     let sock_name = format!("/tmp/{app_name}_logs.sock");
 
@@ -25,27 +24,32 @@ pub async fn run_ipc_server(app_name: &str, tx: Sender<String>) {
 
     let incoming = endpoint.incoming().expect("failed to open new socket");
     futures::pin_mut!(incoming);
-    let mut buf = [0; 1024 * 8];
+    let mut buf = [0; 256];
     while let Some(result) = incoming.next().await {
         match result {
             Ok(stream) => {
-                let (mut reader, _) = split(stream);
+                let (mut reader, mut writer) = split(stream);
+                let mut rx = tx.subscribe();
 
-                loop {
-                    let bytes = match reader.read(&mut buf).await {
-                        Ok(0) => break,
-                        Ok(bytes) => bytes,
-                        Err(_) => break,
-                    };
-
-                    let buf_str = std::str::from_utf8(&buf[0..bytes]).unwrap();
-                    let logs: Vec<_> = buf_str.split('\n').collect();
-                    for log in logs {
-                        if !log.is_empty() && tx.send(log.to_owned()).await.is_err() {
+                tokio::spawn(async move {
+                    loop {
+                        if (reader.read(&mut buf).await).is_err() {
                             return;
                         }
+                        match rx.recv().await {
+                            Ok(Command::Write(log)) => {
+                                if (writer.write_all(&log).await).is_err() {
+                                    return;
+                                }
+                            }
+                            Ok(Command::Flush) => {
+                                writer.flush().await.ok();
+                                return;
+                            }
+                            Err(_) => return,
+                        }
                     }
-                }
+                });
             }
             _ => {
                 tokio::time::sleep(Duration::from_millis(10)).await;
