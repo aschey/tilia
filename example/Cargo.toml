@@ -5,6 +5,7 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
+ctrlc = "3.2.5"
 rand = "0.8.5"
 tokio = {version = "1.21.2", features = ["rt-multi-thread", "macros"]}
 tracing = "0.1.37"

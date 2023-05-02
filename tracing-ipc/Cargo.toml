@@ -4,9 +4,16 @@ name = "tracing-ipc"
 version = "0.1.0"
 
 [dependencies]
+async-trait = "0.1"
+background-service = {git = "https://github.com/aschey/background-service-rs", rev = "0d0fc38608bf0443dd9d1ff162f97431248018e3"}
+bytes = "1.4.0"
 futures = "0.3"
+futures-cancel = {git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d"}
 once_cell = "1"
 parity-tokio-ipc = "0.9"
 tokio = {version = "1", features = ["sync", "rt-multi-thread", "macros", "time", "io-util"]}
+tokio-util = "0.7"
+tower = {version = "0.4.13", features = ["reconnect"]}
+tower-rpc = {git = "https://github.com/aschey/tower-rpc", rev = "9f911cd53809a044cd275b879e76149d83ece2f0", features = ["client", "server", "ipc"]}
 tracing = "0.1"
 tracing-subscriber = "0.3"

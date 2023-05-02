@@ -1,4 +1,11 @@
-use std::{env::args, time::Duration};
+use std::{
+    env::args,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use tracing::{debug, error, info, trace, warn, Level};
@@ -7,8 +14,12 @@ use tracing_subscriber::{fmt::Layer, prelude::*, EnvFilter};
 #[tokio::main]
 async fn main() {
     if let Some(name) = args().collect::<Vec<_>>().get(1) {
-        let env_filter = EnvFilter::from_default_env().add_directive(Level::TRACE.into());
-        let (ipc_writer, _guard) = tracing_ipc::Writer::new(name);
+        let env_filter = EnvFilter::from_default_env()
+            .add_directive(Level::TRACE.into())
+            .add_directive("tokio_util=info".parse().unwrap())
+            .add_directive("tokio_tower=info".parse().unwrap());
+        let (ipc_writer, mut guard) = tracing_ipc::Writer::new(name);
+
         tracing_subscriber::registry()
             .with(env_filter)
             .with({
@@ -27,11 +38,20 @@ async fn main() {
             Level::WARN,
             Level::ERROR,
         ];
-        loop {
-            let level = levels.choose(&mut rng).unwrap().to_owned();
+        let running = Arc::new(AtomicBool::new(true));
+        let r = running.clone();
+        ctrlc::set_handler(move || {
+            r.store(false, Ordering::SeqCst);
+        })
+        .expect("Error setting Ctrl-C handler");
+
+        while running.load(Ordering::SeqCst) {
+            let level = levels.choose(&mut rng).expect("Empty levels").to_owned();
             let sleep_seconds: f64 = rng.gen();
             log(level, (sleep_seconds * 1000.0) as u64).await;
         }
+        println!("\nStopping...");
+        guard.stop().await.ok();
     }
 }
 

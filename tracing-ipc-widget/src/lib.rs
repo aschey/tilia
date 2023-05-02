@@ -60,7 +60,7 @@ impl<'a> LogView<'a> {
         if self.log_stream_running {
             let log = self.rx.recv().await;
             if let Some(log) = log {
-                let text = ListItem::new(log.into_text().unwrap());
+                let text = ListItem::new(log.into_text().expect("Invalid log"));
                 self.logs.add_item(text);
             } else {
                 self.log_stream_running = false;

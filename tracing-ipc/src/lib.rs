@@ -2,7 +2,6 @@ mod writer;
 pub use writer::Writer;
 mod worker_guard;
 pub use worker_guard::WorkerGuard;
-mod command;
 mod filter;
 mod server;
 mod state;

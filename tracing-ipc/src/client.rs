@@ -1,35 +1,27 @@
 use std::time::Duration;
 
-use parity_tokio_ipc::Endpoint;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use bytes::{Bytes, BytesMut};
+use tower::{reconnect::Reconnect, service_fn, util::BoxService, BoxError, ServiceExt};
+use tower_rpc::{length_delimited_codec, transport::ipc, Client, ClientError, ReadyServiceExt};
 
 pub async fn run_ipc_client(app_name: &str, tx: tokio::sync::mpsc::Sender<String>) {
-    #[cfg(unix)]
-    let sock_path = format!("/tmp/{}_logs.sock", app_name);
-    #[cfg(windows)]
-    let sock_path = format!("\\\\.\\pipe\\{}_logs", app_name);
-    let mut buf = [0; 1024 * 8];
+    let make_client = service_fn(move |_: ()| {
+        Box::pin(async move {
+            let client_transport = ipc::connect(app_name).await?;
+            let client = Client::new(length_delimited_codec(client_transport)).create_pipeline();
+            Ok::<_, BoxError>(client.boxed())
+        })
+    });
+    let mut client =
+        Reconnect::new::<BoxService<BytesMut, Bytes, ClientError>, ()>(make_client, ());
+
     loop {
-        match Endpoint::connect(&sock_path).await {
-            Ok(mut client) => loop {
-                if client.write_all(b" ").await.is_err() {
-                    break;
-                }
-                let bytes_read = match client.read(&mut buf).await {
-                    Ok(bytes_read) => bytes_read,
-                    Err(_) => break,
-                };
-                let buf_str = std::str::from_utf8(&buf[0..bytes_read]).unwrap();
-                let logs: Vec<_> = buf_str.split('\n').collect();
-                for log in logs {
-                    if !log.is_empty() && tx.send(log.to_owned()).await.is_err() {
-                        return;
-                    }
-                }
-            },
-            Err(_) => {
-                tokio::time::sleep(Duration::from_secs(1)).await;
+        if let Ok(log_bytes) = client.call_ready(Bytes::default()).await {
+            if let Ok(log_str) = String::from_utf8(log_bytes.to_vec()) {
+                tx.send(log_str).await.ok();
             }
+        } else {
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
 }
