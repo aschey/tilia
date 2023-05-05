@@ -8,7 +8,7 @@ use std::{
     error::Error,
     io::{self, Stdout},
 };
-use tracing_ipc_widget::LogView;
+use tilia_widget::LogView;
 use tui::{
     backend::CrosstermBackend,
     widgets::{Block, BorderType, Borders},

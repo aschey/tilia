@@ -2,7 +2,7 @@ use std::io::Stdout;
 
 use ansi_to_tui::IntoText;
 use stateful_list::StatefulList;
-use tracing_ipc::run_ipc_client;
+use tilia::run_ipc_client;
 use tui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
 
 mod stateful_list;

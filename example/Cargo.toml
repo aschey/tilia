@@ -1,13 +1,13 @@
 [package]
 edition = "2021"
-name = "tracing-ipc-example"
+name = "tilia-example"
 publish = false
 version = "0.1.0"
 
 [dependencies]
 ctrlc = "3.2.5"
 rand = "0.8.5"
-tokio = {version = "1.21.2", features = ["rt-multi-thread", "macros"]}
+tilia = {path = "../crates/tilia"}
+tokio = {version = "1.28.0", features = ["rt-multi-thread", "macros"]}
 tracing = "0.1.37"
-tracing-ipc = {path = "../tracing-ipc"}
-tracing-subscriber = {version = "0.3.16", features = ["registry", "env-filter"]}
+tracing-subscriber = {version = "0.3.17", features = ["registry", "env-filter"]}

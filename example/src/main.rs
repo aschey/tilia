@@ -18,7 +18,7 @@ async fn main() {
             .add_directive(Level::TRACE.into())
             .add_directive("tokio_util=info".parse().unwrap())
             .add_directive("tokio_tower=info".parse().unwrap());
-        let (ipc_writer, mut guard) = tracing_ipc::Writer::new(name);
+        let (ipc_writer, mut guard) = tilia::Writer::new(name);
 
         tracing_subscriber::registry()
             .with(env_filter)
@@ -26,7 +26,7 @@ async fn main() {
                 Layer::new()
                     .compact()
                     .with_writer(ipc_writer)
-                    .with_filter(tracing_ipc::Filter::default())
+                    .with_filter(tilia::Filter::default())
             })
             .init();
 

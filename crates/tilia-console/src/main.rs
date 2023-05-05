@@ -1,6 +1,6 @@
 use std::{env::args, error::Error};
 
-use tracing_ipc_console::Console;
+use tilia_console::Console;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {

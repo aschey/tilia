@@ -1,2 +1,2 @@
 [workspace]
-members = ["tracing-ipc", "tracing-ipc-widget", "tracing-ipc-console", "example"]
+members = ["crates/*", "example"]

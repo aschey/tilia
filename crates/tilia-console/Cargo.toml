@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "tracing-ipc-console"
+name = "tilia-console"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,6 +8,6 @@ version = "0.1.0"
 [dependencies]
 crossterm = {version = "0.25.0", features = ["event-stream"]}
 futures = {version = "0.3.24"}
+tilia-widget = {path = "../tilia-widget"}
 tokio = {version = "1.21", features = ["rt-multi-thread", "macros"]}
-tracing-ipc-widget = {path = "../tracing-ipc-widget"}
 tui = "0.19.0"
