@@ -62,6 +62,11 @@ impl<'a> LogView<'a> {
             if let Some(log) = log {
                 let text = ListItem::new(log.into_text().expect("Invalid log"));
                 self.logs.add_item(text);
+                // Drain all pending items to prevent slow updates
+                while let Ok(log) = self.rx.try_recv() {
+                    let text = ListItem::new(log.into_text().expect("Invalid log"));
+                    self.logs.add_item(text);
+                }
             } else {
                 self.log_stream_running = false;
             }

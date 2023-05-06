@@ -8,3 +8,4 @@ mod state;
 pub use filter::Filter;
 mod client;
 pub use client::*;
+mod history;

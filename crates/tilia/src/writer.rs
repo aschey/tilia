@@ -1,11 +1,12 @@
 use crate::{
+    history,
     server::RequestHandler,
     state::{self, HANDLE},
     WorkerGuard,
 };
 use background_service::BackgroundServiceManager;
-use std::sync::atomic::Ordering;
-use tokio::sync::{broadcast, Mutex};
+use std::{io, sync::atomic::Ordering};
+use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tower_rpc::{
     make_service_fn,
@@ -18,16 +19,19 @@ use tower_rpc::{
 use tracing_subscriber::fmt::MakeWriter;
 
 #[derive(Clone)]
-pub struct Writer {
+pub struct Writer<const CAP: usize> {
     app_name: String,
+    sender: Option<history::Sender<CAP>>,
 }
 
-impl Writer {
+impl<const CAP: usize> Writer<CAP> {
     pub fn new(app_name: &str) -> (Self, WorkerGuard) {
+        let tx = history::channel();
         state::IS_ENABLED.swap(true, Ordering::SeqCst);
         (
             Self {
                 app_name: app_name.to_owned(),
+                sender: Some(tx),
             },
             WorkerGuard,
         )
@@ -37,12 +41,16 @@ impl Writer {
         (
             Self {
                 app_name: "".to_owned(),
+                sender: None,
             },
             WorkerGuard,
         )
     }
 
-    fn init(app_name: String, tx: broadcast::Sender<Vec<u8>>) -> bool {
+    fn init(&self) -> bool {
+        let app_name = self.app_name.clone();
+        let sender = self.sender.clone().expect("Sender not initialized");
+
         // need to ensure we don't panic if this is called outside of the tokio runtime
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             let service_manager = BackgroundServiceManager::new(CancellationToken::new());
@@ -55,7 +63,7 @@ impl Writer {
                     if let Ok(incoming) = transport.incoming() {
                         let server = Server::pipeline(
                             CodecTransport::new(incoming, LengthDelimitedCodec),
-                            make_service_fn(move || RequestHandler::new(tx.clone())),
+                            make_service_fn(move || RequestHandler::new(sender.subscribe())),
                         );
 
                         context
@@ -65,43 +73,38 @@ impl Writer {
                     }
                 }
             });
-            return true;
+            true
+        } else {
+            false
         }
-        false
     }
 }
 
-impl MakeWriter<'_> for Writer {
-    type Writer = Writer;
+impl<const CAP: usize> MakeWriter<'_> for Writer<CAP> {
+    type Writer = Writer<CAP>;
 
     fn make_writer(&'_ self) -> Self::Writer {
         if !*state::IS_INITIALIZED.read().expect("Lock poisoned") {
             let mut is_initialized = state::IS_INITIALIZED.write().expect("Lock poisoned");
             if !*is_initialized {
-                let tx = state::SENDER
-                    .get_or_init(|| {
-                        let (tx, _) = tokio::sync::broadcast::channel(32);
-                        tx
-                    })
-                    .clone();
-
-                *is_initialized = Self::init(self.app_name.to_string(), tx);
+                *is_initialized = self.init();
             }
         }
+
         self.clone()
     }
 }
 
-impl std::io::Write for Writer {
+impl<const CAP: usize> io::Write for Writer<CAP> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        if let Some(sender) = state::SENDER.get() {
+        if let Some(sender) = self.sender.as_mut() {
             sender.send(buf.to_owned()).ok();
         }
 
         Ok(buf.len())
     }
 
-    fn flush(&mut self) -> std::io::Result<()> {
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }

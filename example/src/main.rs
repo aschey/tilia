@@ -18,7 +18,7 @@ async fn main() {
             .add_directive(Level::TRACE.into())
             .add_directive("tokio_util=info".parse().unwrap())
             .add_directive("tokio_tower=info".parse().unwrap());
-        let (ipc_writer, mut guard) = tilia::Writer::new(name);
+        let (ipc_writer, mut guard) = tilia::Writer::<1024>::new(name);
 
         tracing_subscriber::registry()
             .with(env_filter)
