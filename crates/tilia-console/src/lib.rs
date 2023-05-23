@@ -8,7 +8,7 @@ use std::{
     error::Error,
     io::{self, Stdout},
 };
-use tilia_widget::LogView;
+use tilia_widget::{LogView, TransportType};
 use tui::{
     backend::CrosstermBackend,
     widgets::{Block, BorderType, Borders},
@@ -19,9 +19,9 @@ pub struct Console<'a> {
 }
 
 impl<'a> Console<'a> {
-    pub fn new(name: String) -> Self {
+    pub fn new(transport_type: TransportType) -> Self {
         Self {
-            logs: LogView::new(name),
+            logs: LogView::new(transport_type),
         }
     }
 

@@ -2,20 +2,20 @@ use std::io::Stdout;
 
 use ansi_to_tui::IntoText;
 use stateful_list::StatefulList;
-use tilia::run_ipc_client;
+use tilia::run_client;
+pub use tilia::TransportType;
 use tui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
-
 mod stateful_list;
 
 pub struct LogViewBuilder {
     max_logs: usize,
-    name: String,
+    transport_type: TransportType,
 }
 
 impl LogViewBuilder {
-    pub fn new(name: String) -> Self {
+    pub fn new(transport_type: TransportType) -> Self {
         Self {
-            name,
+            transport_type,
             max_logs: 1000,
         }
     }
@@ -35,14 +35,14 @@ pub struct LogView<'a> {
 }
 
 impl<'a> LogView<'a> {
-    pub fn builder(name: String) -> LogViewBuilder {
-        LogViewBuilder::new(name)
+    pub fn builder(transport_type: TransportType) -> LogViewBuilder {
+        LogViewBuilder::new(transport_type)
     }
 
     fn from_builder(builder: LogViewBuilder) -> Self {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
-            run_ipc_client(builder.name.as_ref(), tx).await;
+            run_client(&builder.transport_type, tx).await;
         });
 
         Self {
@@ -52,8 +52,8 @@ impl<'a> LogView<'a> {
         }
     }
 
-    pub fn new(name: String) -> Self {
-        Self::builder(name).build()
+    pub fn new(transport_type: TransportType) -> Self {
+        Self::builder(transport_type).build()
     }
 
     pub async fn update(&mut self) {

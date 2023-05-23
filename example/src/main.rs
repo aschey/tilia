@@ -8,6 +8,7 @@ use std::{
 };
 
 use rand::{seq::SliceRandom, thread_rng, Rng};
+use tilia::TransportType;
 use tracing::{debug, error, info, trace, warn, Level};
 use tracing_subscriber::{fmt::Layer, prelude::*, EnvFilter};
 
@@ -18,7 +19,11 @@ async fn main() {
             .add_directive(Level::TRACE.into())
             .add_directive("tokio_util=info".parse().unwrap())
             .add_directive("tokio_tower=info".parse().unwrap());
-        let (ipc_writer, mut guard) = tilia::Writer::<1024>::new(name);
+        let transport_type = match name.parse() {
+            Ok(addr) => TransportType::Tcp(addr),
+            Err(_) => TransportType::Ipc(name.to_owned()),
+        };
+        let (ipc_writer, mut guard) = tilia::Writer::<1024>::new(transport_type);
 
         tracing_subscriber::registry()
             .with(env_filter)

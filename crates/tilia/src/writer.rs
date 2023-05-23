@@ -2,35 +2,35 @@ use crate::{
     history,
     server::RequestHandler,
     state::{self, HANDLE},
-    WorkerGuard,
+    TransportType, WorkerGuard,
 };
 use background_service::BackgroundServiceManager;
-use std::{io, sync::atomic::Ordering};
+use std::{error::Error, io, sync::atomic::Ordering};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tower_rpc::{
     make_service_fn,
     transport::{
         ipc::{self, OnConflict},
-        CodecTransport,
+        tcp, CodecTransport,
     },
-    LengthDelimitedCodec, Server,
+    IntoBoxedStream, LengthDelimitedCodec, Server,
 };
 use tracing_subscriber::fmt::MakeWriter;
 
 #[derive(Clone)]
 pub struct Writer<const CAP: usize> {
-    app_name: String,
+    transport_type: TransportType,
     sender: Option<history::Sender<CAP>>,
 }
 
 impl<const CAP: usize> Writer<CAP> {
-    pub fn new(app_name: &str) -> (Self, WorkerGuard) {
+    pub fn new(transport_type: TransportType) -> (Self, WorkerGuard) {
         let tx = history::channel();
         state::IS_ENABLED.swap(true, Ordering::SeqCst);
         (
             Self {
-                app_name: app_name.to_owned(),
+                transport_type,
                 sender: Some(tx),
             },
             WorkerGuard,
@@ -40,7 +40,7 @@ impl<const CAP: usize> Writer<CAP> {
     pub fn disabled() -> (Self, WorkerGuard) {
         (
             Self {
-                app_name: "".to_owned(),
+                transport_type: TransportType::Ipc("".to_owned()),
                 sender: None,
             },
             WorkerGuard,
@@ -48,7 +48,6 @@ impl<const CAP: usize> Writer<CAP> {
     }
 
     fn init(&self) -> bool {
-        let app_name = self.app_name.clone();
         let sender = self.sender.clone().expect("Sender not initialized");
 
         // need to ensure we don't panic if this is called outside of the tokio runtime
@@ -58,20 +57,29 @@ impl<const CAP: usize> Writer<CAP> {
             HANDLE
                 .set(Mutex::new(Some(service_manager)))
                 .expect("Handle already set");
+            let transport_type = self.transport_type.clone();
             rt.spawn(async move {
-                if let Ok(transport) = ipc::create_endpoint(&app_name, OnConflict::Overwrite) {
-                    if let Ok(incoming) = transport.incoming() {
-                        let server = Server::pipeline(
-                            CodecTransport::new(incoming, LengthDelimitedCodec),
-                            make_service_fn(move || RequestHandler::new(sender.subscribe())),
-                        );
-
-                        context
-                            .add_service(server)
-                            .await
-                            .expect("Service manager stopped");
+                let transport = match transport_type {
+                    TransportType::Ipc(app_name) => {
+                        let transport = ipc::create_endpoint(app_name, OnConflict::Overwrite)?;
+                        transport.incoming().unwrap().into_boxed()
                     }
-                }
+                    TransportType::Tcp(addr) => {
+                        let transport = tcp::TcpTransport::bind(addr).await?;
+                        transport.into_boxed()
+                    }
+                };
+
+                let server = Server::pipeline(
+                    CodecTransport::new(transport, LengthDelimitedCodec),
+                    make_service_fn(move || RequestHandler::new(sender.subscribe())),
+                );
+
+                context
+                    .add_service(server)
+                    .await
+                    .expect("Service manager stopped");
+                Ok::<_, Box<dyn Error + Send + Sync>>(())
             });
             true
         } else {

@@ -2,12 +2,24 @@ use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
 use tower::{reconnect::Reconnect, service_fn, util::BoxService, BoxError, ServiceExt};
-use tower_rpc::{length_delimited_codec, transport::ipc, Client, ClientError, ReadyServiceExt};
+use tower_rpc::{
+    length_delimited_codec,
+    transport::{ipc, tcp},
+    Client, ClientError, IntoBoxedConnection, ReadyServiceExt,
+};
 
-pub async fn run_ipc_client(app_name: &str, tx: tokio::sync::mpsc::Sender<String>) {
+use crate::TransportType;
+
+pub async fn run_client(transport_type: &TransportType, tx: tokio::sync::mpsc::Sender<String>) {
     let make_client = service_fn(move |_: ()| {
         Box::pin(async move {
-            let client_transport = ipc::connect(app_name).await?;
+            let client_transport = match transport_type {
+                TransportType::Ipc(app_name) => ipc::connect(app_name).await?.into_boxed(),
+                TransportType::Tcp(socket_addr) => {
+                    tcp::TcpStream::connect(socket_addr).await?.into_boxed()
+                }
+            };
+
             let client = Client::new(length_delimited_codec(client_transport)).create_pipeline();
             Ok::<_, BoxError>(client.boxed())
         })
