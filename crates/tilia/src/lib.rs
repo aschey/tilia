@@ -9,6 +9,7 @@ pub use filter::*;
 mod client;
 pub use client::*;
 mod history;
+pub mod transport;
 pub use bytes::{Bytes, BytesMut};
 pub use tower::BoxError;
 pub use tower_rpc::StreamSink;

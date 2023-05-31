@@ -19,12 +19,19 @@ tokio = { version = "1", features = [
     "time",
     "io-util",
 ] }
+bollard = { version = "0.14", optional = true }
+pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
 tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "72f2d60708dc57d91e8330f7efbec77744f763c3", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "23909ff92d442e8dcc3b486a0d87c8f51a412c07", features = [
     "client",
     "server",
 ] }
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
+
+[features]
+tcp = ["tower-rpc/tcp"]
+ipc = ["tower-rpc/ipc"]
+docker = ["bollard", "pin-project-lite"]

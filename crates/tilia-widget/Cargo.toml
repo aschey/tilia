@@ -12,3 +12,8 @@ tilia = { path = "../tilia" }
 tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
 ratatui = { version = "0.21" }
 futures = { version = "0.3" }
+
+[features]
+tcp = ["tilia/tcp"]
+ipc = ["tilia/ipc"]
+docker = ["tilia/docker"]
