@@ -1,21 +1,34 @@
-use std::io::Stdout;
-
 use ansi_to_tui::IntoText;
+use futures::{Future, Sink, TryStream};
+use ratatui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
 use stateful_list::StatefulList;
-use tilia::run_client;
-pub use tilia::TransportType;
-use tui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
+use std::io::Stdout;
+pub use tilia::{run_client, BoxError, Bytes, BytesMut, StreamSink};
 mod stateful_list;
 
-pub struct LogViewBuilder {
+pub struct LogViewBuilder<F, S, Fut>
+where
+    F: Fn() -> Fut + Clone + Send + Sync,
+    Fut: Future<Output = Result<S, BoxError>> + Send,
+    S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <S as futures::TryStream>::Error: std::fmt::Debug,
+    <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+{
     max_logs: usize,
-    transport_type: TransportType,
+    make_transport: F,
 }
 
-impl LogViewBuilder {
-    pub fn new(transport_type: TransportType) -> Self {
+impl<F, S, Fut> LogViewBuilder<F, S, Fut>
+where
+    F: Fn() -> Fut + Clone + Send + Sync + 'static,
+    Fut: Future<Output = Result<S, BoxError>> + Send,
+    S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <S as futures::TryStream>::Error: std::fmt::Debug,
+    <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+{
+    pub fn new(make_transport: F) -> Self {
         Self {
-            transport_type,
+            make_transport,
             max_logs: 1000,
         }
     }
@@ -35,14 +48,28 @@ pub struct LogView<'a> {
 }
 
 impl<'a> LogView<'a> {
-    pub fn builder(transport_type: TransportType) -> LogViewBuilder {
-        LogViewBuilder::new(transport_type)
+    pub fn builder<F, S, Fut>(make_transport: F) -> LogViewBuilder<F, S, Fut>
+    where
+        F: Fn() -> Fut + Clone + Send + Sync + 'static,
+        Fut: Future<Output = Result<S, BoxError>> + Send,
+        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+        <S as futures::TryStream>::Error: std::fmt::Debug,
+        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+    {
+        LogViewBuilder::new(make_transport)
     }
 
-    fn from_builder(builder: LogViewBuilder) -> Self {
+    fn from_builder<F, S, Fut>(builder: LogViewBuilder<F, S, Fut>) -> Self
+    where
+        F: Fn() -> Fut + Clone + Send + Sync + 'static,
+        Fut: Future<Output = Result<S, BoxError>> + Send,
+        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+        <S as futures::TryStream>::Error: std::fmt::Debug,
+        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+    {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
-            run_client(&builder.transport_type, tx).await;
+            run_client(builder.make_transport, tx).await;
         });
 
         Self {
@@ -52,25 +79,33 @@ impl<'a> LogView<'a> {
         }
     }
 
-    pub fn new(transport_type: TransportType) -> Self {
-        Self::builder(transport_type).build()
+    pub fn new<F, S, Fut>(make_transport: F) -> Self
+    where
+        F: Fn() -> Fut + Clone + Send + Sync + 'static,
+        Fut: Future<Output = Result<S, BoxError>> + Send,
+        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+        <S as futures::TryStream>::Error: std::fmt::Debug,
+        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+    {
+        Self::builder(make_transport).build()
     }
 
-    pub async fn update(&mut self) {
+    pub async fn update(&mut self) -> Result<(), ansi_to_tui::Error> {
         if self.log_stream_running {
             let log = self.rx.recv().await;
             if let Some(log) = log {
-                let text = ListItem::new(log.into_text().expect("Invalid log"));
+                let text = ListItem::new(log.into_text()?);
                 self.logs.add_item(text);
                 // Drain all pending items to prevent slow updates
                 while let Ok(log) = self.rx.try_recv() {
-                    let text = ListItem::new(log.into_text().expect("Invalid log"));
+                    let text = ListItem::new(log.into_text()?);
                     self.logs.add_item(text);
                 }
             } else {
                 self.log_stream_running = false;
             }
         }
+        Ok(())
     }
 
     pub fn next(&mut self) {

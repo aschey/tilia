@@ -5,9 +5,17 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-ctrlc = "3.2.5"
+ctrlc = "3.4.0"
 rand = "0.8.5"
-tilia = {path = "../crates/tilia"}
-tokio = {version = "1.28.0", features = ["rt-multi-thread", "macros"]}
+tilia = { path = "../crates/tilia" }
+tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.37"
-tracing-subscriber = {version = "0.3.17", features = ["registry", "env-filter"]}
+tracing-subscriber = { version = "0.3.17", features = [
+    "registry",
+    "env-filter",
+] }
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "72f2d60708dc57d91e8330f7efbec77744f763c3", features = [
+    "client",
+    "server",
+    "ipc",
+] }

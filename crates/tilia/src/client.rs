@@ -1,31 +1,27 @@
 use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
+use futures::{Future, Sink, TryStream};
 use tower::{reconnect::Reconnect, service_fn, util::BoxService, BoxError, ServiceExt};
-use tower_rpc::{
-    length_delimited_codec,
-    transport::{ipc, tcp},
-    Client, ClientError, IntoBoxedConnection, ReadyServiceExt,
-};
+use tower_rpc::{Client, ReadyServiceExt};
 
-use crate::TransportType;
-
-pub async fn run_client(transport_type: &TransportType, tx: tokio::sync::mpsc::Sender<String>) {
+pub async fn run_client<F, S, Fut>(make_transport: F, tx: tokio::sync::mpsc::Sender<String>)
+where
+    F: Fn() -> Fut + Clone + Send + Sync,
+    Fut: Future<Output = Result<S, BoxError>> + Send,
+    S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <S as futures::TryStream>::Error: std::fmt::Debug,
+    <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+{
     let make_client = service_fn(move |_: ()| {
+        let make_transport = make_transport.clone();
         Box::pin(async move {
-            let client_transport = match transport_type {
-                TransportType::Ipc(app_name) => ipc::connect(app_name).await?.into_boxed(),
-                TransportType::Tcp(socket_addr) => {
-                    tcp::TcpStream::connect(socket_addr).await?.into_boxed()
-                }
-            };
-
-            let client = Client::new(length_delimited_codec(client_transport)).create_pipeline();
+            let transport = make_transport().await?;
+            let client = Client::new(transport).create_pipeline();
             Ok::<_, BoxError>(client.boxed())
         })
     });
-    let mut client =
-        Reconnect::new::<BoxService<BytesMut, Bytes, ClientError>, ()>(make_client, ());
+    let mut client = Reconnect::new::<BoxService<BytesMut, Bytes, BoxError>, ()>(make_client, ());
 
     loop {
         if let Ok(log_bytes) = client.call_ready(Bytes::default()).await {

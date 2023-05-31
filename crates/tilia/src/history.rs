@@ -19,13 +19,16 @@ pub struct Sender<const CAP: usize> {
 
 impl<const CAP: usize> Sender<CAP> {
     pub fn send(&mut self, value: Vec<u8>) -> Result<usize, broadcast::error::SendError<Vec<u8>>> {
-        self.buf.write().unwrap().push_back(value.clone());
+        self.buf
+            .write()
+            .expect("Lock poisoned")
+            .push_back(value.clone());
         self.tx.send(value)
     }
 
     pub fn subscribe(&self) -> Receiver<CAP> {
         Receiver {
-            buf: self.buf.read().unwrap().clone(),
+            buf: self.buf.read().expect("Lock poisoned").clone(),
             rx: self.tx.subscribe(),
         }
     }

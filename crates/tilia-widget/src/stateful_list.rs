@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, io::Stdout};
 
-use tui::{
+use ratatui::{
     backend::CrosstermBackend,
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -68,6 +68,7 @@ impl<'a> StatefulList<'a> {
                 Style::default()
                     .bg(Color::LightGreen)
                     .fg(Color::DarkGray)
+                    .remove_modifier(Modifier::DIM)
                     .add_modifier(Modifier::BOLD),
             );
         frame.render_stateful_widget(logs_list, area, &mut self.state);

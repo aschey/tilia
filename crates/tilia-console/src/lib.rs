@@ -3,25 +3,32 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use futures::StreamExt;
-use std::{
-    error::Error,
-    io::{self, Stdout},
-};
-use tilia_widget::{LogView, TransportType};
-use tui::{
+use futures::{Future, Sink, StreamExt, TryStream};
+use ratatui::{
     backend::CrosstermBackend,
     widgets::{Block, BorderType, Borders},
     Frame, Terminal,
 };
+use std::{
+    error::Error,
+    io::{self, Stdout},
+};
+use tilia_widget::{BoxError, Bytes, BytesMut, LogView};
 pub struct Console<'a> {
     logs: LogView<'a>,
 }
 
 impl<'a> Console<'a> {
-    pub fn new(transport_type: TransportType) -> Self {
+    pub fn new<F, S, Fut>(make_transport: F) -> Self
+    where
+        F: Fn() -> Fut + Clone + Send + Sync + 'static,
+        Fut: Future<Output = Result<S, BoxError>> + Send,
+        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+        <S as futures::TryStream>::Error: std::fmt::Debug,
+        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+    {
         Self {
-            logs: LogView::new(transport_type),
+            logs: LogView::new(make_transport),
         }
     }
 

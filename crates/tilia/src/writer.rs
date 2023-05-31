@@ -2,45 +2,77 @@ use crate::{
     history,
     server::RequestHandler,
     state::{self, HANDLE},
-    TransportType, WorkerGuard,
+    WorkerGuard,
 };
 use background_service::BackgroundServiceManager;
-use std::{error::Error, io, sync::atomic::Ordering};
+use bytes::{Bytes, BytesMut};
+use futures::{Future, Sink, Stream, TryStream};
+use std::{
+    error::Error,
+    fmt::Debug,
+    io,
+    sync::{atomic::Ordering, Arc},
+};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
-use tower_rpc::{
-    make_service_fn,
-    transport::{
-        ipc::{self, OnConflict},
-        tcp, CodecTransport,
-    },
-    IntoBoxedStream, LengthDelimitedCodec, Server,
-};
+use tower_rpc::{make_service_fn, Server};
 use tracing_subscriber::fmt::MakeWriter;
 
-#[derive(Clone)]
-pub struct Writer<const CAP: usize> {
-    transport_type: TransportType,
+pub struct Writer<const CAP: usize, F, S, I, E, Fut>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = S>,
+    S: Stream<Item = Result<I, E>>,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+{
     sender: Option<history::Sender<CAP>>,
+    make_transport: Arc<F>,
 }
 
-impl<const CAP: usize> Writer<CAP> {
-    pub fn new(transport_type: TransportType) -> (Self, WorkerGuard) {
+impl<const CAP: usize, F, S, I, E, Fut> Clone for Writer<CAP, F, S, I, E, Fut>
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: Future<Output = S> + Send,
+    S: Stream<Item = Result<I, E>> + Send,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <I as Sink<Bytes>>::Error: Debug,
+    <I as TryStream>::Error: Debug,
+    E: Send,
+{
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+            make_transport: self.make_transport.clone(),
+        }
+    }
+}
+
+impl<const CAP: usize, F, S, I, E, Fut> Writer<CAP, F, S, I, E, Fut>
+where
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = S> + Send,
+    S: Stream<Item = Result<I, E>> + Send + 'static,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <I as Sink<Bytes>>::Error: Debug,
+    <I as TryStream>::Error: Debug,
+    E: Send + 'static,
+{
+    pub fn new(make_transport: F) -> (Self, WorkerGuard) {
         let tx = history::channel();
         state::IS_ENABLED.swap(true, Ordering::SeqCst);
         (
             Self {
-                transport_type,
+                make_transport: Arc::new(make_transport),
                 sender: Some(tx),
             },
             WorkerGuard,
         )
     }
 
-    pub fn disabled() -> (Self, WorkerGuard) {
+    pub fn disabled(make_transport: F) -> (Self, WorkerGuard) {
         (
             Self {
-                transport_type: TransportType::Ipc("".to_owned()),
+                make_transport: Arc::new(make_transport),
                 sender: None,
             },
             WorkerGuard,
@@ -57,21 +89,13 @@ impl<const CAP: usize> Writer<CAP> {
             HANDLE
                 .set(Mutex::new(Some(service_manager)))
                 .expect("Handle already set");
-            let transport_type = self.transport_type.clone();
+
+            let make_transport = self.make_transport.clone();
             rt.spawn(async move {
-                let transport = match transport_type {
-                    TransportType::Ipc(app_name) => {
-                        let transport = ipc::create_endpoint(app_name, OnConflict::Overwrite)?;
-                        transport.incoming().unwrap().into_boxed()
-                    }
-                    TransportType::Tcp(addr) => {
-                        let transport = tcp::TcpTransport::bind(addr).await?;
-                        transport.into_boxed()
-                    }
-                };
+                let transport = make_transport().await;
 
                 let server = Server::pipeline(
-                    CodecTransport::new(transport, LengthDelimitedCodec),
+                    transport,
                     make_service_fn(move || RequestHandler::new(sender.subscribe())),
                 );
 
@@ -81,6 +105,7 @@ impl<const CAP: usize> Writer<CAP> {
                     .expect("Service manager stopped");
                 Ok::<_, Box<dyn Error + Send + Sync>>(())
             });
+
             true
         } else {
             false
@@ -88,8 +113,17 @@ impl<const CAP: usize> Writer<CAP> {
     }
 }
 
-impl<const CAP: usize> MakeWriter<'_> for Writer<CAP> {
-    type Writer = Writer<CAP>;
+impl<const CAP: usize, F, S, I, E, Fut> MakeWriter<'_> for Writer<CAP, F, S, I, E, Fut>
+where
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = S> + Send,
+    S: Stream<Item = Result<I, E>> + Send + 'static,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <I as Sink<Bytes>>::Error: Debug,
+    <I as TryStream>::Error: Debug,
+    E: Send + 'static,
+{
+    type Writer = Writer<CAP, F, S, I, E, Fut>;
 
     fn make_writer(&'_ self) -> Self::Writer {
         if !*state::IS_INITIALIZED.read().expect("Lock poisoned") {
@@ -103,7 +137,16 @@ impl<const CAP: usize> MakeWriter<'_> for Writer<CAP> {
     }
 }
 
-impl<const CAP: usize> io::Write for Writer<CAP> {
+impl<const CAP: usize, F, S, I, E, Fut> io::Write for Writer<CAP, F, S, I, E, Fut>
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: Future<Output = S> + Send,
+    S: Stream<Item = Result<I, E>> + Send,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    <I as Sink<Bytes>>::Error: Debug,
+    <I as TryStream>::Error: Debug,
+    E: Send,
+{
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         if let Some(sender) = self.sender.as_mut() {
             sender.send(buf.to_owned()).ok();

@@ -8,7 +8,13 @@ use std::{
 };
 
 use rand::{seq::SliceRandom, thread_rng, Rng};
-use tilia::TransportType;
+use tower_rpc::{
+    transport::{
+        ipc::{self, OnConflict},
+        CodecTransport,
+    },
+    LengthDelimitedCodec,
+};
 use tracing::{debug, error, info, trace, warn, Level};
 use tracing_subscriber::{fmt::Layer, prelude::*, EnvFilter};
 
@@ -19,11 +25,15 @@ async fn main() {
             .add_directive(Level::TRACE.into())
             .add_directive("tokio_util=info".parse().unwrap())
             .add_directive("tokio_tower=info".parse().unwrap());
-        let transport_type = match name.parse() {
-            Ok(addr) => TransportType::Tcp(addr),
-            Err(_) => TransportType::Ipc(name.to_owned()),
-        };
-        let (ipc_writer, mut guard) = tilia::Writer::<1024>::new(transport_type);
+
+        let name = name.to_owned();
+        let (ipc_writer, mut guard) = tilia::Writer::<1024, _, _, _, _, _>::new(move || {
+            let name = name.to_owned();
+            Box::pin(async move {
+                let transport = ipc::create_endpoint(name, OnConflict::Overwrite).unwrap();
+                CodecTransport::new(transport, LengthDelimitedCodec)
+            })
+        });
 
         tracing_subscriber::registry()
             .with(env_filter)
