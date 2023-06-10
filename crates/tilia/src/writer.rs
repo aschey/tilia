@@ -18,18 +18,18 @@ use tokio_util::sync::CancellationToken;
 use tower_rpc::{make_service_fn, Server};
 use tracing_subscriber::fmt::MakeWriter;
 
-pub struct Writer<const CAP: usize, F, S, I, E, Fut>
+pub struct Writer<F, S, I, E, Fut>
 where
     F: Fn() -> Fut,
     Fut: Future<Output = S>,
     S: Stream<Item = Result<I, E>>,
     I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
 {
-    sender: Option<history::Sender<CAP>>,
+    sender: Option<history::Sender>,
     make_transport: Arc<F>,
 }
 
-impl<const CAP: usize, F, S, I, E, Fut> Clone for Writer<CAP, F, S, I, E, Fut>
+impl<F, S, I, E, Fut> Clone for Writer<F, S, I, E, Fut>
 where
     F: Fn() -> Fut + Send + Sync,
     Fut: Future<Output = S> + Send,
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<const CAP: usize, F, S, I, E, Fut> Writer<CAP, F, S, I, E, Fut>
+impl<F, S, I, E, Fut> Writer<F, S, I, E, Fut>
 where
     F: Fn() -> Fut + Send + Sync + 'static,
     Fut: Future<Output = S> + Send,
@@ -57,8 +57,8 @@ where
     <I as TryStream>::Error: Debug,
     E: Send + 'static,
 {
-    pub fn new(make_transport: F) -> (Self, WorkerGuard) {
-        let tx = history::channel();
+    pub fn new(capacity: usize, make_transport: F) -> (Self, WorkerGuard) {
+        let tx = history::channel(capacity);
         state::IS_ENABLED.swap(true, Ordering::SeqCst);
         (
             Self {
@@ -99,10 +99,7 @@ where
                     make_service_fn(move || RequestHandler::new(sender.subscribe())),
                 );
 
-                context
-                    .add_service(server)
-                    .await
-                    .expect("Service manager stopped");
+                context.add_service(server);
                 Ok::<_, Box<dyn Error + Send + Sync>>(())
             });
 
@@ -113,7 +110,7 @@ where
     }
 }
 
-impl<const CAP: usize, F, S, I, E, Fut> MakeWriter<'_> for Writer<CAP, F, S, I, E, Fut>
+impl<F, S, I, E, Fut> MakeWriter<'_> for Writer<F, S, I, E, Fut>
 where
     F: Fn() -> Fut + Send + Sync + 'static,
     Fut: Future<Output = S> + Send,
@@ -123,7 +120,7 @@ where
     <I as TryStream>::Error: Debug,
     E: Send + 'static,
 {
-    type Writer = Writer<CAP, F, S, I, E, Fut>;
+    type Writer = Writer<F, S, I, E, Fut>;
 
     fn make_writer(&'_ self) -> Self::Writer {
         if !*state::IS_INITIALIZED.read().expect("Lock poisoned") {
@@ -137,7 +134,7 @@ where
     }
 }
 
-impl<const CAP: usize, F, S, I, E, Fut> io::Write for Writer<CAP, F, S, I, E, Fut>
+impl<F, S, I, E, Fut> io::Write for Writer<F, S, I, E, Fut>
 where
     F: Fn() -> Fut + Send + Sync,
     Fut: Future<Output = S> + Send,

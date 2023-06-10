@@ -8,19 +8,19 @@ use tower_rpc::Request;
 
 use crate::history;
 
-pub(crate) struct RequestHandler<const CAP: usize> {
-    rx: Arc<Mutex<history::Receiver<CAP>>>,
+pub(crate) struct RequestHandler {
+    rx: Arc<Mutex<history::Receiver>>,
 }
 
-impl<const CAP: usize> RequestHandler<CAP> {
-    pub(crate) fn new(rx: history::Receiver<CAP>) -> Self {
+impl RequestHandler {
+    pub(crate) fn new(rx: history::Receiver) -> Self {
         Self {
             rx: Arc::new(Mutex::new(rx)),
         }
     }
 }
 
-impl<const CAP: usize> Service<Request<BytesMut>> for RequestHandler<CAP> {
+impl Service<Request<BytesMut>> for RequestHandler {
     type Response = Bytes;
     type Error = BoxError;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;

@@ -29,7 +29,7 @@ where
     pub fn new(make_transport: F) -> Self {
         Self {
             make_transport,
-            max_logs: 1000,
+            max_logs: 1024,
         }
     }
     pub fn with_max_logs(self, max_logs: usize) -> Self {

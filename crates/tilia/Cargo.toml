@@ -4,9 +4,8 @@ name = "tilia"
 version = "0.1.0"
 
 [dependencies]
-arraydeque = "0.5"
 async-trait = "0.1"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "0d0fc38608bf0443dd9d1ff162f97431248018e3" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "639911fe9bfee863c35dbab967185dae6a4a395f" }
 bytes = "1"
 futures = "0.3"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }
@@ -23,13 +22,14 @@ bollard = { version = "0.14", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
 tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "23909ff92d442e8dcc3b486a0d87c8f51a412c07", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "7cc9de34f32e9cb5d6bc9e22ba0508011fd7d580", features = [
     "client",
     "server",
 ] }
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
+crossbeam = { version = "0.8", features = ["crossbeam-queue"] }
 
 [features]
 tcp = ["tower-rpc/tcp"]

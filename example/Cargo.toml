@@ -14,7 +14,7 @@ tracing-subscriber = { version = "0.3.17", features = [
     "registry",
     "env-filter",
 ] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "72f2d60708dc57d91e8330f7efbec77744f763c3", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "7cc9de34f32e9cb5d6bc9e22ba0508011fd7d580", features = [
     "client",
     "server",
     "ipc",

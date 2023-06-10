@@ -1,47 +1,43 @@
-use std::sync::{Arc, RwLock};
-
-use arraydeque::{ArrayDeque, Wrapping};
+use crossbeam::queue::ArrayQueue;
+use std::sync::Arc;
 use tokio::sync::broadcast;
 
-pub fn channel<const CAP: usize>() -> Sender<CAP> {
-    let (tx, _) = broadcast::channel(CAP);
+pub fn channel(capacity: usize) -> Sender {
+    let (tx, _) = broadcast::channel(capacity);
     Sender {
-        buf: Default::default(),
+        buf: Arc::new(ArrayQueue::new(capacity)),
         tx,
     }
 }
 
 #[derive(Clone)]
-pub struct Sender<const CAP: usize> {
-    buf: Arc<RwLock<ArrayDeque<Vec<u8>, CAP, Wrapping>>>,
+pub struct Sender {
+    buf: Arc<ArrayQueue<Vec<u8>>>,
     tx: broadcast::Sender<Vec<u8>>,
 }
 
-impl<const CAP: usize> Sender<CAP> {
+impl Sender {
     pub fn send(&mut self, value: Vec<u8>) -> Result<usize, broadcast::error::SendError<Vec<u8>>> {
-        self.buf
-            .write()
-            .expect("Lock poisoned")
-            .push_back(value.clone());
+        self.buf.force_push(value.clone());
         self.tx.send(value)
     }
 
-    pub fn subscribe(&self) -> Receiver<CAP> {
+    pub fn subscribe(&self) -> Receiver {
         Receiver {
-            buf: self.buf.read().expect("Lock poisoned").clone(),
+            buf: self.buf.clone(),
             rx: self.tx.subscribe(),
         }
     }
 }
 
-pub struct Receiver<const CAP: usize> {
-    buf: ArrayDeque<Vec<u8>, CAP, Wrapping>,
+pub struct Receiver {
+    buf: Arc<ArrayQueue<Vec<u8>>>,
     rx: broadcast::Receiver<Vec<u8>>,
 }
 
-impl<const CAP: usize> Receiver<CAP> {
+impl Receiver {
     pub async fn recv(&mut self) -> Result<Vec<u8>, broadcast::error::RecvError> {
-        if let Some(val) = self.buf.pop_front() {
+        if let Some(val) = self.buf.pop() {
             Ok(val)
         } else {
             self.rx.recv().await

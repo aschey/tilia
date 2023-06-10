@@ -27,7 +27,7 @@ async fn main() {
             .add_directive("tokio_tower=info".parse().unwrap());
 
         let name = name.to_owned();
-        let (ipc_writer, mut guard) = tilia::Writer::<1024, _, _, _, _, _>::new(move || {
+        let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
             let name = name.to_owned();
             Box::pin(async move {
                 let transport = ipc::create_endpoint(name, OnConflict::Overwrite).unwrap();
