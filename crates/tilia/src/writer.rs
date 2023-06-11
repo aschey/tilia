@@ -79,10 +79,18 @@ where
         )
     }
 
-    fn init(&self) -> bool {
+    pub fn init(&self) -> bool {
+        let mut is_initialized = state::IS_INITIALIZED.write().expect("Lock poisoned");
+        if !*is_initialized {
+            *is_initialized = self.try_init();
+        }
+        *is_initialized
+    }
+
+    fn try_init(&self) -> bool {
         let sender = self.sender.clone().expect("Sender not initialized");
 
-        // need to ensure we don't panic if this is called outside of the tokio runtime
+        // Ensure we don't panic if this is called outside of the tokio runtime
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             let service_manager = BackgroundServiceManager::new(CancellationToken::new());
             let mut context = service_manager.get_context();
@@ -123,13 +131,7 @@ where
     type Writer = Writer<F, S, I, E, Fut>;
 
     fn make_writer(&'_ self) -> Self::Writer {
-        if !*state::IS_INITIALIZED.read().expect("Lock poisoned") {
-            let mut is_initialized = state::IS_INITIALIZED.write().expect("Lock poisoned");
-            if !*is_initialized {
-                *is_initialized = self.init();
-            }
-        }
-
+        self.init();
         self.clone()
     }
 }
