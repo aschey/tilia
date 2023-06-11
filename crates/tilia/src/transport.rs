@@ -26,7 +26,7 @@ pub fn ipc_client(
 
 #[cfg(feature = "tcp")]
 pub fn tcp_client(
-    addr: impl ToSocketAddrs + Clone + Send + Sync + 'static,
+    addr: impl tokio::net::ToSocketAddrs + Clone + Send + Sync + 'static,
 ) -> impl Fn() -> Pin<
     Box<
         dyn Future<Output = Result<CodecStream<BytesMut, Bytes, io::Error, io::Error>, BoxError>>
