@@ -10,7 +10,7 @@ use std::{
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use tower_rpc::{
     transport::{
-        ipc::{self, OnConflict},
+        ipc::{self, OnConflict, SecurityAttributes},
         CodecTransport,
     },
     LengthDelimitedCodec,
@@ -30,7 +30,12 @@ async fn main() {
         let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
             let name = name.to_owned();
             Box::pin(async move {
-                let transport = ipc::create_endpoint(name, OnConflict::Overwrite).unwrap();
+                let transport = ipc::create_endpoint(
+                    name,
+                    SecurityAttributes::allow_everyone_create().unwrap(),
+                    OnConflict::Overwrite,
+                )
+                .unwrap();
                 CodecTransport::new(transport, LengthDelimitedCodec)
             })
         });
