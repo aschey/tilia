@@ -3,7 +3,7 @@ use futures::{Future, Sink, TryStream};
 use ratatui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
 use stateful_list::StatefulList;
 use std::io::Stdout;
-pub use tilia::{run_client, transport, BoxError, Bytes, BytesMut, StreamSink};
+pub use tilia::{run_client, transport, BoxError, Bytes, BytesMut};
 mod stateful_list;
 
 pub struct LogViewBuilder<F, S, Fut>

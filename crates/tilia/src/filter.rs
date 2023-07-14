@@ -19,7 +19,7 @@ where
     pub fn new(inner: F) -> Self {
         Self {
             inner,
-            _phantom: PhantomData::default(),
+            _phantom: PhantomData,
         }
     }
 }

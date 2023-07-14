@@ -1,3 +1,4 @@
+use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::{
     env::args,
     sync::{
@@ -6,9 +7,7 @@ use std::{
     },
     time::Duration,
 };
-
-use rand::{seq::SliceRandom, thread_rng, Rng};
-use tower_rpc::{
+use tilia::tower_rpc::{
     transport::{
         ipc::{self, OnConflict, SecurityAttributes},
         CodecTransport,
