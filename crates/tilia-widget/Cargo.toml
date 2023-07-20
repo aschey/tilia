@@ -10,7 +10,7 @@ ansi-to-tui = "3"
 crossterm = { version = "0.26" }
 tilia = { path = "../tilia" }
 tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
-ratatui = { version = "0.21" }
+ratatui = { version = "0.22" }
 futures = { version = "0.3" }
 
 [features]
