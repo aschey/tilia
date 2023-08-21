@@ -6,7 +6,7 @@ use std::time::Duration;
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use tilia::tower_rpc::transport::ipc::{
-    self, ConnectionId, IpcSecurity, OnConflict, SecurityAttributes,
+    self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
 use tilia::tower_rpc::transport::CodecTransport;
 use tilia::tower_rpc::LengthDelimitedCodec;
@@ -28,7 +28,7 @@ async fn main() {
             let name = name.to_owned();
             Box::pin(async move {
                 let transport = ipc::create_endpoint(
-                    ConnectionId(name),
+                    ServerId(name),
                     SecurityAttributes::allow_everyone_create().unwrap(),
                     OnConflict::Overwrite,
                 )
