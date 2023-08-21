@@ -1,6 +1,8 @@
+use std::sync::atomic::AtomicBool;
+use std::sync::RwLock;
+
 use background_service::BackgroundServiceManager;
 use once_cell::sync::OnceCell;
-use std::sync::{atomic::AtomicBool, RwLock};
 use tokio::sync::Mutex;
 
 pub(crate) static IS_INITIALIZED: RwLock<bool> = RwLock::new(false);

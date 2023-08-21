@@ -1,7 +1,6 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, RwLock},
-};
+use std::collections::VecDeque;
+use std::sync::{Arc, RwLock};
+
 use tokio::sync::broadcast;
 
 pub fn channel(capacity: usize) -> Sender {

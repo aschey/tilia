@@ -10,7 +10,6 @@ bytes = "1"
 futures = "0.3"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "40760850d131f0f172d135170aae01d99714f717" }
 once_cell = "1"
-parity-tokio-ipc = "0.9"
 tokio = { version = "1", features = [
     "sync",
     "rt-multi-thread",
@@ -22,7 +21,7 @@ bollard = { version = "0.14", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
 tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "6a071245ef1743521285b0115f83cbdb33030289", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "0ebc8ddaf96189c0e952726b80eca6c766d8f5eb", features = [
     "client",
     "server",
 ] }

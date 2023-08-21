@@ -1,8 +1,12 @@
+use std::io::Stdout;
+
 use ansi_to_tui::IntoText;
 use futures::{Future, Sink, TryStream};
-use ratatui::{backend::CrosstermBackend, layout::Rect, widgets::ListItem, Frame};
+use ratatui::backend::CrosstermBackend;
+use ratatui::layout::Rect;
+use ratatui::widgets::ListItem;
+use ratatui::Frame;
 use stateful_list::StatefulList;
-use std::io::Stdout;
 pub use tilia::{run_client, transport, BoxError, Bytes, BytesMut};
 mod stateful_list;
 

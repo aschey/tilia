@@ -1,6 +1,8 @@
-use std::{marker::PhantomData, sync::atomic::Ordering};
+use std::marker::PhantomData;
+use std::sync::atomic::Ordering;
 
-use tracing::{metadata::LevelFilter, subscriber::Interest};
+use tracing::metadata::LevelFilter;
+use tracing::subscriber::Interest;
 
 use crate::state;
 

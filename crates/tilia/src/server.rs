@@ -1,7 +1,10 @@
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::Poll;
+
 use bytes::{Bytes, BytesMut};
 use futures::Future;
 use futures_cancel::FutureExt;
-use std::{pin::Pin, sync::Arc, task::Poll};
 use tokio::sync::Mutex;
 use tower::{BoxError, Service};
 use tower_rpc::Request;

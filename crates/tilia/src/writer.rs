@@ -1,22 +1,20 @@
-use crate::{
-    history,
-    server::RequestHandler,
-    state::{self, HANDLE},
-    WorkerGuard,
-};
+use std::error::Error;
+use std::fmt::Debug;
+use std::io;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+
 use background_service::BackgroundServiceManager;
 use bytes::{Bytes, BytesMut};
 use futures::{Future, Sink, Stream, TryStream};
-use std::{
-    error::Error,
-    fmt::Debug,
-    io,
-    sync::{atomic::Ordering, Arc},
-};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tower_rpc::{make_service_fn, Server};
 use tracing_subscriber::fmt::MakeWriter;
+
+use crate::server::RequestHandler;
+use crate::state::{self, HANDLE};
+use crate::{history, WorkerGuard};
 
 pub struct Writer<F, S, I, E, Fut>
 where

@@ -1,18 +1,17 @@
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+use std::error::Error;
+use std::io::{self, Stdout};
+
+use crossterm::event::{
+    DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers,
+};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use futures::{Future, Sink, StreamExt, TryStream};
-use ratatui::{
-    backend::CrosstermBackend,
-    widgets::{Block, BorderType, Borders},
-    Frame, Terminal,
-};
-use std::{
-    error::Error,
-    io::{self, Stdout},
-};
+use ratatui::backend::CrosstermBackend;
+use ratatui::widgets::{Block, BorderType, Borders};
+use ratatui::{Frame, Terminal};
 use tilia_widget::{BoxError, Bytes, BytesMut, LogView};
 pub struct Console<'a> {
     logs: LogView<'a>,
@@ -77,7 +76,9 @@ impl<'a> Console<'a> {
                             if let Event::Key(key) = event {
                                 match (key.modifiers, key.code) {
                                     (_, KeyCode::Char('q') | KeyCode::Esc) |
-                                        (KeyModifiers::CONTROL, KeyCode::Char('c')) => return Ok(()),
+                                        (KeyModifiers::CONTROL, KeyCode::Char('c')) => {
+                                            return Ok(());
+                                        },
                                     (_, KeyCode::Down) =>  self.logs.next(),
                                     (_, KeyCode::Up) =>  self.logs.previous(),
                                     _ => {}

@@ -1,12 +1,11 @@
-use std::{collections::VecDeque, io::Stdout};
+use std::collections::VecDeque;
+use std::io::Stdout;
 
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::Rect,
-    style::{Color, Modifier, Style},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState},
-    Frame,
-};
+use ratatui::backend::CrosstermBackend;
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, ListState};
+use ratatui::Frame;
 
 pub(crate) struct StatefulList<'a> {
     state: ListState,

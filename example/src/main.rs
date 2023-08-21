@@ -1,21 +1,19 @@
-use rand::{seq::SliceRandom, thread_rng, Rng};
-use std::{
-    env::args,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
+use std::env::args;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+
+use rand::seq::SliceRandom;
+use rand::{thread_rng, Rng};
+use tilia::tower_rpc::transport::ipc::{
+    self, ConnectionId, IpcSecurity, OnConflict, SecurityAttributes,
 };
-use tilia::tower_rpc::{
-    transport::{
-        ipc::{self, OnConflict, SecurityAttributes},
-        CodecTransport,
-    },
-    LengthDelimitedCodec,
-};
+use tilia::tower_rpc::transport::CodecTransport;
+use tilia::tower_rpc::LengthDelimitedCodec;
 use tracing::{debug, error, info, trace, warn, Level};
-use tracing_subscriber::{fmt::Layer, prelude::*, EnvFilter};
+use tracing_subscriber::fmt::Layer;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
@@ -30,7 +28,7 @@ async fn main() {
             let name = name.to_owned();
             Box::pin(async move {
                 let transport = ipc::create_endpoint(
-                    name,
+                    ConnectionId(name),
                     SecurityAttributes::allow_everyone_create().unwrap(),
                     OnConflict::Overwrite,
                 )

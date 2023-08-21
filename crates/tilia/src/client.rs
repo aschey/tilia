@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
 use futures::{Future, Sink, TryStream};
-use tower::{reconnect::Reconnect, service_fn, util::BoxService, BoxError, ServiceExt};
+use tower::reconnect::Reconnect;
+use tower::util::BoxService;
+use tower::{service_fn, BoxError, ServiceExt};
 use tower_rpc::{Client, ReadyServiceExt};
 
 pub async fn run_client<F, S, Fut>(make_transport: F, tx: tokio::sync::mpsc::Sender<String>)
