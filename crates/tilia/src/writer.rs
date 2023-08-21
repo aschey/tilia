@@ -90,7 +90,10 @@ where
 
         // Ensure we don't panic if this is called outside of the tokio runtime
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
-            let service_manager = BackgroundServiceManager::new(CancellationToken::new());
+            let service_manager = BackgroundServiceManager::new(
+                CancellationToken::new(),
+                background_service::Settings::default(),
+            );
             let mut context = service_manager.get_context();
             HANDLE
                 .set(Mutex::new(Some(service_manager)))
