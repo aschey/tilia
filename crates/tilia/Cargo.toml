@@ -21,7 +21,7 @@ bollard = { version = "0.14", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
 tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "91e6b5dd4bbe5a8b9ffdd11ff893a351439be440", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "9b508837845a40214b85bec98ee00b9bb1f5d124", features = [
     "client",
     "server",
 ] }
