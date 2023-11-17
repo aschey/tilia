@@ -94,7 +94,7 @@ impl<'a> Console<'a> {
         }
     }
 
-    fn ui(&mut self, f: &mut Frame<CrosstermBackend<Stdout>>) {
+    fn ui(&mut self, f: &mut Frame) {
         let size = f.size();
         let block = Block::default()
             .borders(Borders::all())

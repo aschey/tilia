@@ -1,7 +1,5 @@
 use std::collections::VecDeque;
-use std::io::Stdout;
 
-use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, ListState};
@@ -55,7 +53,7 @@ impl<'a> StatefulList<'a> {
         }
     }
 
-    pub(crate) fn render(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>, area: Rect) {
+    pub(crate) fn render(&mut self, frame: &mut Frame, area: Rect) {
         let logs_list = List::new(self.items.clone())
             .block(
                 Block::default()

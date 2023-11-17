@@ -1,8 +1,5 @@
-use std::io::Stdout;
-
 use ansi_to_tui::IntoText;
 use futures::{Future, Sink, TryStream};
-use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Rect;
 use ratatui::widgets::ListItem;
 use ratatui::Frame;
@@ -120,7 +117,7 @@ impl<'a> LogView<'a> {
         self.logs.previous();
     }
 
-    pub fn render(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>, area: Rect) {
+    pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.logs.render(frame, area)
     }
 }
