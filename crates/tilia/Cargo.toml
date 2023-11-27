@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 async-trait = "0.1"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "a2ad6a6d0c792e54ae7d6ab9fe36953ab4ce4e1c" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "f79815ad5b9f42f534592c8a23e615cb37d8d76f" }
 bytes = "1"
 futures = "0.3"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
@@ -21,7 +21,7 @@ bollard = { version = "0.15", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
 tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "d9754fe975cc85de2bcf035e6a83f06a15ea082e", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "9cc5fe3d1c262439d2bd458624235805edb59643", features = [
     "client",
     "server",
 ] }
