@@ -11,7 +11,7 @@ futures = { version = "0.3" }
 tilia-widget = { path = "../tilia-widget", features = ["ipc"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ratatui = "0.24"
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "d9754fe975cc85de2bcf035e6a83f06a15ea082e", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "14ef65b71c24cc087e6963fefe7a07274fb1e2f7", features = [
     "client",
     "server",
     "ipc",
