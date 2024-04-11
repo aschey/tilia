@@ -4,7 +4,6 @@ name = "tilia"
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1"
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "1c1b4e5c3e11e3136c981e9a040817eed19b5507" }
 bytes = "1"
 futures = "0.3"
