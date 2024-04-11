@@ -4,7 +4,7 @@ name = "tilia"
 version = "0.1.0"
 
 [dependencies]
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "1c1b4e5c3e11e3136c981e9a040817eed19b5507" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "15db3730c47a7bd6221c65cbb68b2a9373ff41f0" }
 bytes = "1"
 futures = "0.3"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
@@ -20,7 +20,7 @@ bollard = { version = "0.16", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
 tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "4704276c6b9c320fb414816e027fa5284df21f91", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "c062ca3048f04f4439f203084982dcbe1dbbb0fc", features = [
     "client",
     "server",
 ] }

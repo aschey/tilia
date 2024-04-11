@@ -4,8 +4,8 @@ use bytes::{Bytes, BytesMut};
 use futures::{Future, Sink, TryStream};
 use tower::reconnect::Reconnect;
 use tower::util::BoxService;
-use tower::{service_fn, BoxError, ServiceExt};
-use tower_rpc::{Client, ReadyServiceExt};
+use tower::{service_fn, BoxError, Service, ServiceExt};
+use tower_rpc::Client;
 
 pub async fn run_client<F, S, Fut>(make_transport: F, tx: tokio::sync::mpsc::Sender<String>)
 where
@@ -26,11 +26,15 @@ where
     let mut client = Reconnect::new::<BoxService<BytesMut, Bytes, BoxError>, ()>(make_client, ());
 
     loop {
-        if let Ok(log_bytes) = client.call_ready(Bytes::default()).await {
+        let send = async {
+            let log_bytes = client.ready().await?.call(Bytes::default()).await?;
             if let Ok(log_str) = String::from_utf8(log_bytes.to_vec()) {
                 tx.send(log_str).await.ok();
             }
-        } else {
+            Ok::<_, BoxError>(())
+        };
+
+        if send.await.is_err() {
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
