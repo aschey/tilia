@@ -8,7 +8,7 @@ use tower_rpc::{length_delimited_codec, transport, CodecStream};
 
 #[cfg(feature = "ipc")]
 pub fn ipc_client(
-    name: impl tower_rpc::transport::ipc::IntoIpcPath,
+    name: impl tower_rpc::transport::ipc::IntoIpcPath + Clone + 'static,
 ) -> impl Fn() -> Pin<
     Box<
         dyn Future<Output = Result<CodecStream<BytesMut, Bytes, io::Error, io::Error>, BoxError>>
@@ -16,10 +16,11 @@ pub fn ipc_client(
     >,
 > + Clone
 + Send {
-    let ipc_path = name.into_ipc_path();
+    let name = name.clone();
     move || {
-        let ipc_path = ipc_path.clone();
+        let name = name.clone();
         Box::pin(async move {
+            let ipc_path = name.into_ipc_path()?;
             let client_transport = transport::ipc::connect(ipc_path).await?;
             Ok(length_delimited_codec(client_transport))
         })
