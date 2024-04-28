@@ -1,7 +1,7 @@
 use background_service::error::BoxedError;
 use background_service::{BackgroundService, ServiceContext};
-use bytes::{Bytes, BytesMut};
-use futures::{Sink, SinkExt, Stream, StreamExt, TryStream};
+use bytes::Bytes;
+use futures::{Sink, SinkExt, Stream, StreamExt};
 use futures_cancel::FutureExt;
 
 use crate::history;
@@ -26,7 +26,7 @@ where
 impl<S, I, E> BackgroundService for RequestHandler<S, I, E>
 where
     S: Stream<Item = Result<I, E>> + Send,
-    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Unpin + Send + 'static,
+    I: Sink<Bytes> + Unpin + Send + 'static,
 {
     fn name(&self) -> &str {
         "request_handler"

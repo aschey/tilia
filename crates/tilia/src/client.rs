@@ -3,15 +3,15 @@ use std::io;
 use std::time::Duration;
 
 use background_service::error::BoxedError;
-use bytes::{Bytes, BytesMut};
-use futures::{Future, Sink, Stream, StreamExt};
+use bytes::BytesMut;
+use futures::{Future, Stream, StreamExt};
 
 pub async fn run_client<F, S, E, Fut>(make_transport: F, tx: tokio::sync::mpsc::Sender<String>)
 where
     F: Fn() -> Fut + Clone + Send + Sync,
     Fut: Future<Output = Result<S, BoxedError>> + Send,
     E: Error + Send + Sync,
-    S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+    S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
 {
     let make_client = || async {
         loop {

@@ -8,11 +8,11 @@ use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use futures::{Future, Sink, Stream, StreamExt};
+use futures::{Future, Stream, StreamExt};
 use ratatui::backend::CrosstermBackend;
 use ratatui::widgets::{Block, BorderType, Borders};
 use ratatui::{Frame, Terminal};
-use tilia_widget::{BoxedError, Bytes, BytesMut, LogView};
+use tilia_widget::{BoxedError, BytesMut, LogView};
 
 pub struct Console<'a> {
     logs: LogView<'a>,
@@ -23,7 +23,7 @@ impl<'a> Console<'a> {
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
         E: Error + Send + Sync,
     {
         Self {

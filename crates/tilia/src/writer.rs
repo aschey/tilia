@@ -20,7 +20,7 @@ where
     F: Fn() -> Fut,
     Fut: Future<Output = S>,
     S: Stream<Item = Result<I, E>>,
-    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    I: TryStream<Ok = BytesMut> + Send + 'static,
 {
     sender: Option<history::Sender>,
     make_transport: Arc<F>,

@@ -61,15 +61,14 @@ pub fn tcp_client(
 
 #[cfg(feature = "docker")]
 pub mod docker {
-    use std::convert::Infallible;
     use std::pin::Pin;
     use std::task::Poll;
 
     use background_service::error::BoxedError;
     use bollard::container::{LogOutput, LogsOptions};
     use bollard::Docker;
-    use bytes::{Bytes, BytesMut};
-    use futures::{Future, Sink, Stream};
+    use bytes::BytesMut;
+    use futures::{Future, Stream};
     use pin_project_lite::pin_project;
 
     pub type DockerLogStream = Pin<Box<dyn Future<Output = Result<LogStream, BoxedError>> + Send>>;
@@ -128,35 +127,6 @@ pub mod docker {
                 Poll::Ready(None) => Poll::Ready(None),
                 Poll::Pending => Poll::Pending,
             }
-        }
-    }
-
-    impl Sink<Bytes> for LogStream {
-        type Error = Infallible;
-
-        fn poll_ready(
-            self: Pin<&mut Self>,
-            _cx: &mut std::task::Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
-            Poll::Ready(Ok(()))
-        }
-
-        fn start_send(self: Pin<&mut Self>, _item: Bytes) -> Result<(), Self::Error> {
-            Ok(())
-        }
-
-        fn poll_flush(
-            self: Pin<&mut Self>,
-            _cx: &mut std::task::Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
-            Poll::Ready(Ok(()))
-        }
-
-        fn poll_close(
-            self: Pin<&mut Self>,
-            _cx: &mut std::task::Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
-            Poll::Ready(Ok(()))
         }
     }
 }

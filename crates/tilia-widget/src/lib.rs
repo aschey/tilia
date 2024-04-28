@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use ansi_to_tui::IntoText;
-use futures::{Future, Sink, Stream};
+use futures::{Future, Stream};
 use ratatui::layout::Rect;
 use ratatui::widgets::ListItem;
 use ratatui::Frame;
@@ -13,7 +13,7 @@ pub struct LogViewBuilder<F, S, E, Fut>
 where
     F: Fn() -> Fut + Clone + Send + Sync,
     Fut: Future<Output = Result<S, BoxedError>> + Send,
-    S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+    S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
     E: Error + Send + Sync,
 {
     max_logs: usize,
@@ -24,7 +24,7 @@ impl<F, S, E, Fut> LogViewBuilder<F, S, E, Fut>
 where
     F: Fn() -> Fut + Clone + Send + Sync + 'static,
     Fut: Future<Output = Result<S, BoxedError>> + Send,
-    S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+    S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
     E: Error + Send + Sync,
 {
     pub fn new(make_transport: F) -> Self {
@@ -53,7 +53,7 @@ impl<'a> LogView<'a> {
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
         E: Error + Send + Sync,
     {
         LogViewBuilder::new(make_transport)
@@ -63,7 +63,7 @@ impl<'a> LogView<'a> {
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
         E: Error + Send + Sync,
     {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
@@ -82,7 +82,7 @@ impl<'a> LogView<'a> {
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        S: Stream<Item = Result<BytesMut, E>> + Send + Unpin + 'static,
         E: Error + Send + Sync,
     {
         Self::builder(make_transport).build()
