@@ -9,6 +9,7 @@ use tower_rpc::transport::ipc::ServerId;
 pub enum ContainerLogSource {
     Stdout,
     Stderr,
+    All,
 }
 
 #[derive(Clone, Debug, clap::Parser)]
@@ -38,6 +39,7 @@ async fn main() -> Result<(), BoxedError> {
                 match log_source {
                     ContainerLogSource::Stdout => docker::LogSource::Stdout,
                     ContainerLogSource::Stderr => docker::LogSource::Stderr,
+                    ContainerLogSource::All => docker::LogSource::All,
                 },
             ))
             .run()

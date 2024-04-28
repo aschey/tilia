@@ -77,6 +77,7 @@ pub mod docker {
     pub enum LogSource {
         Stdout,
         Stderr,
+        All,
     }
 
     pub fn docker_client(
@@ -90,8 +91,8 @@ pub mod docker {
             let logs = docker.logs(
                 &container.clone(),
                 Some(LogsOptions::<String> {
-                    stderr: log_source == LogSource::Stderr,
-                    stdout: log_source == LogSource::Stdout,
+                    stderr: matches!(log_source, LogSource::Stderr | LogSource::All),
+                    stdout: matches!(log_source, LogSource::Stdout | LogSource::All),
                     follow: true,
                     ..Default::default()
                 }),
