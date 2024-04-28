@@ -1,4 +1,4 @@
-use std::io;
+use std::error::Error;
 
 use ansi_to_tui::IntoText;
 use futures::{Future, Sink, Stream};
@@ -9,23 +9,23 @@ use stateful_list::StatefulList;
 pub use tilia::{run_client, transport, BoxedError, Bytes, BytesMut};
 mod stateful_list;
 
-pub struct LogViewBuilder<F, S, Fut>
+pub struct LogViewBuilder<F, S, E, Fut>
 where
     F: Fn() -> Fut + Clone + Send + Sync,
     Fut: Future<Output = Result<S, BoxedError>> + Send,
-    S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
-    <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+    S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+    E: Error + Send + Sync,
 {
     max_logs: usize,
     make_transport: F,
 }
 
-impl<F, S, Fut> LogViewBuilder<F, S, Fut>
+impl<F, S, E, Fut> LogViewBuilder<F, S, E, Fut>
 where
     F: Fn() -> Fut + Clone + Send + Sync + 'static,
     Fut: Future<Output = Result<S, BoxedError>> + Send,
-    S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
-    <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+    S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+    E: Error + Send + Sync,
 {
     pub fn new(make_transport: F) -> Self {
         Self {
@@ -49,22 +49,22 @@ pub struct LogView<'a> {
 }
 
 impl<'a> LogView<'a> {
-    pub fn builder<F, S, Fut>(make_transport: F) -> LogViewBuilder<F, S, Fut>
+    pub fn builder<F, S, E, Fut>(make_transport: F) -> LogViewBuilder<F, S, E, Fut>
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
-        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        E: Error + Send + Sync,
     {
         LogViewBuilder::new(make_transport)
     }
 
-    fn from_builder<F, S, Fut>(builder: LogViewBuilder<F, S, Fut>) -> Self
+    fn from_builder<F, S, E, Fut>(builder: LogViewBuilder<F, S, E, Fut>) -> Self
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
-        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        E: Error + Send + Sync,
     {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
@@ -78,12 +78,12 @@ impl<'a> LogView<'a> {
         }
     }
 
-    pub fn new<F, S, Fut>(make_transport: F) -> Self
+    pub fn new<F, S, E, Fut>(make_transport: F) -> Self
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
-        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        E: Error + Send + Sync,
     {
         Self::builder(make_transport).build()
     }

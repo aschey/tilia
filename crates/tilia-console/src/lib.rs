@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io::{self, Stdout};
 
 use crossterm::event::{
@@ -12,17 +13,18 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::widgets::{Block, BorderType, Borders};
 use ratatui::{Frame, Terminal};
 use tilia_widget::{BoxedError, Bytes, BytesMut, LogView};
+
 pub struct Console<'a> {
     logs: LogView<'a>,
 }
 
 impl<'a> Console<'a> {
-    pub fn new<F, S, Fut>(make_transport: F) -> Self
+    pub fn new<F, S, E, Fut>(make_transport: F) -> Self
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<S, BoxedError>> + Send,
-        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
-        <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
+        S: Stream<Item = Result<BytesMut, E>> + Sink<Bytes> + Send + Unpin + 'static,
+        E: Error + Send + Sync,
     {
         Self {
             logs: LogView::new(make_transport),

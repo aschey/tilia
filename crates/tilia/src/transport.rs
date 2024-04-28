@@ -42,13 +42,14 @@ pub fn tcp_client(
 ) -> impl Fn() -> Pin<
     Box<
         dyn Future<
-            Output = Result<
-                transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
-                BoxedError,
-            >,
-        >,
+                Output = Result<
+                    transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
+                    BoxedError,
+                >,
+            > + Send,
     >,
-> {
+> + Clone
++ Send {
     move || {
         let addr = addr.clone();
         Box::pin(async move {
@@ -73,8 +74,15 @@ pub mod docker {
 
     pub type DockerLogStream = Pin<Box<dyn Future<Output = Result<LogStream, BoxedError>> + Send>>;
 
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    pub enum LogSource {
+        Stdout,
+        Stderr,
+    }
+
     pub fn docker_client(
         container: impl Into<String>,
+        log_source: LogSource,
     ) -> impl Fn() -> DockerLogStream + Clone + Send {
         let container = container.into();
         move || {
@@ -83,7 +91,8 @@ pub mod docker {
             let logs = docker.logs(
                 &container.clone(),
                 Some(LogsOptions::<String> {
-                    stderr: true,
+                    stderr: log_source == LogSource::Stderr,
+                    stdout: log_source == LogSource::Stdout,
                     follow: true,
                     ..Default::default()
                 }),
@@ -112,7 +121,8 @@ pub mod docker {
         ) -> std::task::Poll<Option<Self::Item>> {
             match self.project().inner.poll_next(cx) {
                 std::task::Poll::Ready(Some(Ok(log))) => Poll::Ready(Some(Ok(BytesMut::from(
-                    log.into_bytes().to_vec().as_slice(),
+                    // replace newlines to fix wonky formatting
+                    log.to_string().replace('\n', " ").as_bytes(),
                 )))),
                 Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(e))),
                 Poll::Ready(None) => Poll::Ready(None),
