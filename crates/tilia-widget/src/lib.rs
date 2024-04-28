@@ -1,18 +1,19 @@
+use std::io;
+
 use ansi_to_tui::IntoText;
-use futures::{Future, Sink, TryStream};
+use futures::{Future, Sink, Stream};
 use ratatui::layout::Rect;
 use ratatui::widgets::ListItem;
 use ratatui::Frame;
 use stateful_list::StatefulList;
-pub use tilia::{run_client, transport, BoxError, Bytes, BytesMut};
+pub use tilia::{run_client, transport, BoxedError, Bytes, BytesMut};
 mod stateful_list;
 
 pub struct LogViewBuilder<F, S, Fut>
 where
     F: Fn() -> Fut + Clone + Send + Sync,
-    Fut: Future<Output = Result<S, BoxError>> + Send,
-    S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
-    <S as futures::TryStream>::Error: std::fmt::Debug,
+    Fut: Future<Output = Result<S, BoxedError>> + Send,
+    S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
     <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
 {
     max_logs: usize,
@@ -22,9 +23,8 @@ where
 impl<F, S, Fut> LogViewBuilder<F, S, Fut>
 where
     F: Fn() -> Fut + Clone + Send + Sync + 'static,
-    Fut: Future<Output = Result<S, BoxError>> + Send,
-    S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
-    <S as futures::TryStream>::Error: std::fmt::Debug,
+    Fut: Future<Output = Result<S, BoxedError>> + Send,
+    S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
     <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
 {
     pub fn new(make_transport: F) -> Self {
@@ -52,9 +52,8 @@ impl<'a> LogView<'a> {
     pub fn builder<F, S, Fut>(make_transport: F) -> LogViewBuilder<F, S, Fut>
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
-        Fut: Future<Output = Result<S, BoxError>> + Send,
-        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
-        <S as futures::TryStream>::Error: std::fmt::Debug,
+        Fut: Future<Output = Result<S, BoxedError>> + Send,
+        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
         <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
     {
         LogViewBuilder::new(make_transport)
@@ -63,9 +62,8 @@ impl<'a> LogView<'a> {
     fn from_builder<F, S, Fut>(builder: LogViewBuilder<F, S, Fut>) -> Self
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
-        Fut: Future<Output = Result<S, BoxError>> + Send,
-        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
-        <S as futures::TryStream>::Error: std::fmt::Debug,
+        Fut: Future<Output = Result<S, BoxedError>> + Send,
+        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
         <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
     {
         let (tx, rx) = tokio::sync::mpsc::channel(32);
@@ -83,9 +81,8 @@ impl<'a> LogView<'a> {
     pub fn new<F, S, Fut>(make_transport: F) -> Self
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
-        Fut: Future<Output = Result<S, BoxError>> + Send,
-        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
-        <S as futures::TryStream>::Error: std::fmt::Debug,
+        Fut: Future<Output = Result<S, BoxedError>> + Send,
+        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
         <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
     {
         Self::builder(make_transport).build()

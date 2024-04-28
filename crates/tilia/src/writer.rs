@@ -1,15 +1,14 @@
-use std::error::Error;
 use std::fmt::Debug;
 use std::io;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
+use background_service::error::BoxedError;
 use background_service::BackgroundServiceManager;
 use bytes::{Bytes, BytesMut};
 use futures::{Future, Sink, Stream, TryStream};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
-use tower_rpc::{make_service_fn, Server};
 use tracing_subscriber::fmt::MakeWriter;
 
 use crate::server::RequestHandler;
@@ -50,7 +49,7 @@ where
     F: Fn() -> Fut + Send + Sync + 'static,
     Fut: Future<Output = S> + Send,
     S: Stream<Item = Result<I, E>> + Send + 'static,
-    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Unpin + Send + 'static,
     <I as Sink<Bytes>>::Error: Debug,
     <I as TryStream>::Error: Debug,
     E: Send + 'static,
@@ -103,13 +102,10 @@ where
             rt.spawn(async move {
                 let transport = make_transport().await;
 
-                let server = Server::pipeline(
-                    transport,
-                    make_service_fn(move || RequestHandler::new(sender.subscribe())),
-                );
+                let server = RequestHandler::new(transport, sender.clone());
 
                 context.add_service(server);
-                Ok::<_, Box<dyn Error + Send + Sync>>(())
+                Ok::<_, BoxedError>(())
             });
 
             true
@@ -124,7 +120,7 @@ where
     F: Fn() -> Fut + Send + Sync + 'static,
     Fut: Future<Output = S> + Send,
     S: Stream<Item = Result<I, E>> + Send + 'static,
-    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
+    I: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + Unpin + 'static,
     <I as Sink<Bytes>>::Error: Debug,
     <I as TryStream>::Error: Debug,
     E: Send + 'static,
@@ -149,7 +145,7 @@ where
 {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         if let Some(sender) = self.sender.as_mut() {
-            sender.send(buf.to_owned()).ok();
+            let _ = sender.send(buf.to_owned());
         }
 
         Ok(buf.len())

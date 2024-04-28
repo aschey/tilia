@@ -3,25 +3,34 @@ use std::pin::Pin;
 
 use bytes::{Bytes, BytesMut};
 use futures::Future;
-use tower::BoxError;
-use tower_rpc::{length_delimited_codec, transport, CodecStream};
+use transport_async::codec::length_delimited_codec;
+use transport_async::Connect;
+
+use crate::BoxedError;
 
 #[cfg(feature = "ipc")]
 pub fn ipc_client(
-    name: impl tower_rpc::transport::ipc::IntoIpcPath + Clone + 'static,
+    name: impl transport_async::ipc::IntoIpcPath + Clone + 'static,
 ) -> impl Fn() -> Pin<
     Box<
-        dyn Future<Output = Result<CodecStream<BytesMut, Bytes, io::Error, io::Error>, BoxError>>
-            + Send,
+        dyn Future<
+                Output = Result<
+                    transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
+                    BoxedError,
+                >,
+            > + Send,
     >,
 > + Clone
 + Send {
     let name = name.clone();
+
     move || {
         let name = name.clone();
         Box::pin(async move {
-            let ipc_path = name.into_ipc_path()?;
-            let client_transport = transport::ipc::connect(ipc_path).await?;
+            let client_transport = transport_async::ipc::Connection::connect(
+                transport_async::ipc::ConnectionParams::new(name)?,
+            )
+            .await?;
             Ok(length_delimited_codec(client_transport))
         })
     }
@@ -32,15 +41,18 @@ pub fn tcp_client(
     addr: impl tokio::net::ToSocketAddrs + Clone + Send + Sync + 'static,
 ) -> impl Fn() -> Pin<
     Box<
-        dyn Future<Output = Result<CodecStream<BytesMut, Bytes, io::Error, io::Error>, BoxError>>
-            + Send,
+        dyn Future<
+            Output = Result<
+                transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
+                BoxedError,
+            >,
+        >,
     >,
-> + Clone
-+ Send {
+> {
     move || {
         let addr = addr.clone();
         Box::pin(async move {
-            let client_transport = transport::tcp::connect(addr.clone()).await?;
+            let client_transport = transport_async::tcp::Connection::connect(addr).await?;
             Ok(length_delimited_codec(client_transport))
         })
     }
@@ -52,14 +64,14 @@ pub mod docker {
     use std::pin::Pin;
     use std::task::Poll;
 
+    use background_service::error::BoxedError;
     use bollard::container::{LogOutput, LogsOptions};
     use bollard::Docker;
     use bytes::{Bytes, BytesMut};
     use futures::{Future, Sink, Stream};
     use pin_project_lite::pin_project;
-    use tower::BoxError;
 
-    pub type DockerLogStream = Pin<Box<dyn Future<Output = Result<LogStream, BoxError>> + Send>>;
+    pub type DockerLogStream = Pin<Box<dyn Future<Output = Result<LogStream, BoxedError>> + Send>>;
 
     pub fn docker_client(
         container: impl Into<String>,

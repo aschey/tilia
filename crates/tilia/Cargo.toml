@@ -19,16 +19,14 @@ tokio = { version = "1", features = [
 bollard = { version = "0.16", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 tokio-util = "0.7"
-tower = { version = "0.4", features = ["reconnect"] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "51a8f475562ee5d3af1e08463e20f8a175160a30", features = [
-    "client",
-    "server",
+transport-async = { git = "https://github.com/aschey/transport-async-rs", rev = "fa5ac34bf6f02189eaf2bde5bb552a4c08265f98", features = [
+    "codec",
 ] }
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
 [features]
-tcp = ["tower-rpc/tcp"]
-ipc = ["tower-rpc/ipc"]
+tcp = ["transport-async/tcp"]
+ipc = ["transport-async/ipc"]
 docker = ["bollard", "pin-project-lite"]

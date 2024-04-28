@@ -5,18 +5,17 @@ use std::time::Duration;
 
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
-use tilia::tower_rpc::transport::ipc::{
-    self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
-};
-use tilia::tower_rpc::transport::CodecTransport;
-use tilia::tower_rpc::LengthDelimitedCodec;
+use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
+use tilia::transport_async::ipc::{self, IpcSecurity, OnConflict, SecurityAttributes, ServerId};
+use tilia::transport_async::Bind;
+use tilia::BoxedError;
 use tracing::{debug, error, info, trace, warn, Level};
 use tracing_subscriber::fmt::Layer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), BoxedError> {
     if let Some(name) = args().collect::<Vec<_>>().get(1) {
         let env_filter = EnvFilter::from_default_env()
             .add_directive(Level::TRACE.into())
@@ -27,13 +26,17 @@ async fn main() {
         let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
             let name = name.to_owned();
             Box::pin(async move {
-                let transport = ipc::create_endpoint(
-                    ServerId(name),
-                    SecurityAttributes::allow_everyone_create().unwrap(),
-                    OnConflict::Overwrite,
+                let transport = ipc::Endpoint::bind(
+                    ipc::EndpointParams::new(
+                        ServerId(name),
+                        SecurityAttributes::allow_everyone_create().unwrap(),
+                        OnConflict::Overwrite,
+                    )
+                    .unwrap(),
                 )
+                .await
                 .unwrap();
-                CodecTransport::new(transport, LengthDelimitedCodec)
+                CodecStream::new(transport, LengthDelimitedCodec)
             })
         });
 
@@ -68,7 +71,10 @@ async fn main() {
             log(level, (sleep_seconds * 1000.0) as u64).await;
         }
         println!("\nStopping...");
-        guard.stop().await.ok();
+        let _ = guard.stop().await;
+        Ok(())
+    } else {
+        Err("app name required".into())
     }
 }
 

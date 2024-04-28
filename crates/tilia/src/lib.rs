@@ -10,6 +10,6 @@ mod client;
 pub use client::*;
 mod history;
 pub mod transport;
+pub use background_service::error::BoxedError;
 pub use bytes::{Bytes, BytesMut};
-pub use tower::BoxError;
-pub use tower_rpc;
+pub use transport_async;

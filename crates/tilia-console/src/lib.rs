@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::io::{self, Stdout};
 
 use crossterm::event::{
@@ -8,11 +7,11 @@ use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use futures::{Future, Sink, StreamExt, TryStream};
+use futures::{Future, Sink, Stream, StreamExt};
 use ratatui::backend::CrosstermBackend;
 use ratatui::widgets::{Block, BorderType, Borders};
 use ratatui::{Frame, Terminal};
-use tilia_widget::{BoxError, Bytes, BytesMut, LogView};
+use tilia_widget::{BoxedError, Bytes, BytesMut, LogView};
 pub struct Console<'a> {
     logs: LogView<'a>,
 }
@@ -21,9 +20,8 @@ impl<'a> Console<'a> {
     pub fn new<F, S, Fut>(make_transport: F) -> Self
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,
-        Fut: Future<Output = Result<S, BoxError>> + Send,
-        S: TryStream<Ok = BytesMut> + Sink<Bytes> + Send + 'static,
-        <S as futures::TryStream>::Error: std::fmt::Debug,
+        Fut: Future<Output = Result<S, BoxedError>> + Send,
+        S: Stream<Item = Result<BytesMut, io::Error>> + Sink<Bytes> + Send + Unpin + 'static,
         <S as futures::Sink<Bytes>>::Error: std::fmt::Debug,
     {
         Self {
@@ -35,7 +33,7 @@ impl<'a> Console<'a> {
         Self { logs: log_view }
     }
 
-    pub async fn run(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn run(&mut self) -> Result<(), BoxedError> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -64,7 +62,7 @@ impl<'a> Console<'a> {
     async fn run_app(
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    ) -> Result<(), BoxedError> {
         let mut event_reader = EventStream::new().fuse();
         loop {
             terminal.draw(|f| self.ui(f))?;

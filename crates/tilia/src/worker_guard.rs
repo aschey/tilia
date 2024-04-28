@@ -14,7 +14,7 @@ impl Drop for WorkerGuard {
     fn drop(&mut self) {
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             rt.spawn(async move {
-                stop().await.ok();
+                let _ = stop().await;
             });
         }
     }
