@@ -13,16 +13,17 @@ pub(crate) struct StatefulList<'a> {
 
 impl<'a> StatefulList<'a> {
     pub(crate) fn new(max_logs: usize) -> StatefulList<'a> {
-        let mut state = ListState::default();
-        state.select(Some(0));
         StatefulList {
-            state,
+            state: ListState::default(),
             max_logs,
             items: VecDeque::new(),
         }
     }
 
     pub(crate) fn add_item(&mut self, item: ListItem<'a>) {
+        if self.state.selected().is_none() {
+            self.state.select(Some(0));
+        }
         if self.items.len() >= self.max_logs {
             self.items.pop_front();
             self.previous();
