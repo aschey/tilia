@@ -7,13 +7,13 @@ version = "0.1.0"
 [dependencies]
 bollard = { version = "0.16.1", features = ["buildkit"] }
 ctrlc = "3.4.4"
-flate2 = "1.0.29"
+flate2 = "1.0.30"
 futures = "0.3.30"
 ignore = "0.4.22"
 rand = "0.8.5"
-tar = "0.4.40"
+tar = "0.4.41"
 tilia = { path = "../crates/tilia", features = ["ipc", "docker"] }
-tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.38.0", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [
     "registry",

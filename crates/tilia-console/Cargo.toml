@@ -10,10 +10,10 @@ crossterm = { version = "0.27", features = ["event-stream"] }
 futures = { version = "0.3" }
 tilia-widget = { path = "../tilia-widget", features = ["ipc", "tcp", "docker"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-ratatui = "0.26"
+ratatui = "0.27"
 tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "51a8f475562ee5d3af1e08463e20f8a175160a30", features = [
     "client",
     "server",
     "ipc",
 ] }
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.9", features = ["derive"] }
