@@ -3,7 +3,7 @@ use std::pin::Pin;
 
 use bytes::{Bytes, BytesMut};
 use futures::Future;
-use transport_async::codec::length_delimited_codec;
+use transport_async::codec::LengthDelimitedCodec;
 use transport_async::Connect;
 
 use crate::BoxedError;
@@ -31,7 +31,7 @@ pub fn ipc_client(
                 transport_async::ipc::ConnectionParams::new(name)?,
             )
             .await?;
-            Ok(length_delimited_codec(client_transport))
+            Ok(LengthDelimitedCodec::client(client_transport))
         })
     }
 }
@@ -54,7 +54,7 @@ pub fn tcp_client(
         let addr = addr.clone();
         Box::pin(async move {
             let client_transport = transport_async::tcp::Connection::connect(addr).await?;
-            Ok(length_delimited_codec(client_transport))
+            Ok(LengthDelimitedCodec::client(client_transport))
         })
     }
 }

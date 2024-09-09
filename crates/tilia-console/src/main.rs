@@ -3,7 +3,7 @@ use tilia_console::Console;
 use tilia_widget::transport::docker::{self, docker_client};
 use tilia_widget::transport::{ipc_client, tcp_client};
 use tilia_widget::BoxedError;
-use tower_rpc::transport::ipc::ServerId;
+use transport_async::ipc::ServerId;
 
 #[derive(Clone, Debug, ValueEnum)]
 pub enum ContainerLogSource {
@@ -31,7 +31,11 @@ async fn main() -> Result<(), BoxedError> {
     let cli = Tranport::parse();
 
     match cli {
-        Tranport::Ipc { app_name } => Console::new(ipc_client(ServerId(app_name))).run().await,
+        Tranport::Ipc { app_name } => {
+            Console::new(ipc_client(ServerId::new(app_name)))
+                .run()
+                .await
+        }
         Tranport::Tcp { address } => Console::new(tcp_client(address)).run().await,
         Tranport::Container { name, log_source } => {
             Console::new(docker_client(

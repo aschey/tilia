@@ -6,7 +6,7 @@ use std::time::Duration;
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
-use tilia::transport_async::ipc::{self, IpcSecurity, OnConflict, SecurityAttributes, ServerId};
+use tilia::transport_async::ipc::{self, OnConflict, SecurityAttributes, ServerId};
 use tilia::transport_async::Bind;
 use tilia::BoxedError;
 use tracing::{debug, error, info, trace, warn, Level};
@@ -28,7 +28,7 @@ async fn main() -> Result<(), BoxedError> {
             Box::pin(async move {
                 let transport = ipc::Endpoint::bind(
                     ipc::EndpointParams::new(
-                        ServerId(name),
+                        ServerId::new(name),
                         SecurityAttributes::allow_everyone_create().unwrap(),
                         OnConflict::Overwrite,
                     )

@@ -95,7 +95,7 @@ impl<'a> Console<'a> {
     }
 
     fn ui(&mut self, f: &mut Frame) {
-        let size = f.size();
+        let size = f.area();
         let block = Block::default()
             .borders(Borders::all())
             .border_type(BorderType::Rounded);

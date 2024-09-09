@@ -4,7 +4,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use background_service::error::BoxedError;
-use background_service::BackgroundServiceManager;
+use background_service::Manager;
 use bytes::{Bytes, BytesMut};
 use futures::{Future, Sink, Stream, TryStream};
 use tokio::sync::Mutex;
@@ -89,11 +89,11 @@ where
 
         // Ensure we don't panic if this is called outside of the tokio runtime
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
-            let service_manager = BackgroundServiceManager::new(
+            let service_manager = Manager::new(
                 CancellationToken::new(),
                 background_service::Settings::default(),
             );
-            let mut context = service_manager.get_context();
+            let context = service_manager.get_context();
             HANDLE
                 .set(Mutex::new(Some(service_manager)))
                 .expect("Handle already set");
@@ -104,7 +104,7 @@ where
 
                 let server = RequestHandler::new(transport, sender.clone());
 
-                context.add_service(server);
+                context.spawn(server);
                 Ok::<_, BoxedError>(())
             });
 

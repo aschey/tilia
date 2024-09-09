@@ -32,15 +32,14 @@ where
         "request_handler"
     }
 
-    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let transport = self.transport;
         futures::pin_mut!(transport);
-        let token = context.cancellation_token();
-        while let Ok(Some(Ok(mut client))) = transport.next().cancel_on_shutdown(&token).await {
+        while let Ok(Some(Ok(mut client))) = transport.next().cancel_with(context.cancelled()).await
+        {
             let mut rx = self.tx.subscribe();
-            context.add_service(("request", |context: ServiceContext| async move {
-                let token = context.cancellation_token();
-                while let Ok(Ok(msg)) = rx.recv().cancel_on_shutdown(&token).await {
+            context.spawn(("request", |context: ServiceContext| async move {
+                while let Ok(Ok(msg)) = rx.recv().cancel_with(context.cancelled()).await {
                     let _ = client.send(Bytes::from(msg)).await;
                 }
                 Ok(())
