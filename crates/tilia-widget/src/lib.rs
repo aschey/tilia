@@ -2,11 +2,11 @@ use std::error::Error;
 
 use ansi_to_tui::IntoText;
 use futures::{Future, Stream};
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::ListItem;
-use ratatui::Frame;
 use stateful_list::StatefulList;
-pub use tilia::{run_client, transport, BoxedError, Bytes, BytesMut};
+pub use tilia::{BoxedError, Bytes, BytesMut, run_client, transport};
 mod stateful_list;
 
 pub struct LogViewBuilder<F, S, E, Fut>
@@ -48,7 +48,7 @@ pub struct LogView<'a> {
     log_stream_running: bool,
 }
 
-impl<'a> LogView<'a> {
+impl LogView<'_> {
     pub fn builder<F, S, E, Fut>(make_transport: F) -> LogViewBuilder<F, S, E, Fut>
     where
         F: Fn() -> Fut + Clone + Send + Sync + 'static,

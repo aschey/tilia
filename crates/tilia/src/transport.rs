@@ -3,25 +3,22 @@ use std::pin::Pin;
 
 use bytes::{Bytes, BytesMut};
 use futures::Future;
-use transport_async::codec::LengthDelimitedCodec;
 use transport_async::Connect;
+use transport_async::codec::LengthDelimitedCodec;
 
 use crate::BoxedError;
+
+type StreamFuture = dyn Future<
+        Output = Result<
+            transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
+            BoxedError,
+        >,
+    > + Send;
 
 #[cfg(feature = "ipc")]
 pub fn ipc_client(
     name: impl transport_async::ipc::IntoIpcPath + Clone + 'static,
-) -> impl Fn() -> Pin<
-    Box<
-        dyn Future<
-                Output = Result<
-                    transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
-                    BoxedError,
-                >,
-            > + Send,
-    >,
-> + Clone
-+ Send {
+) -> impl Fn() -> Pin<Box<StreamFuture>> + Clone + Send {
     let name = name.clone();
 
     move || {
@@ -39,17 +36,7 @@ pub fn ipc_client(
 #[cfg(feature = "tcp")]
 pub fn tcp_client(
     addr: impl tokio::net::ToSocketAddrs + Clone + Send + Sync + 'static,
-) -> impl Fn() -> Pin<
-    Box<
-        dyn Future<
-                Output = Result<
-                    transport_async::codec::EncodedStream<BytesMut, Bytes, io::Error, io::Error>,
-                    BoxedError,
-                >,
-            > + Send,
-    >,
-> + Clone
-+ Send {
+) -> impl Fn() -> Pin<Box<StreamFuture>> + Clone + Send {
     move || {
         let addr = addr.clone();
         Box::pin(async move {
@@ -65,8 +52,8 @@ pub mod docker {
     use std::task::Poll;
 
     use background_service::error::BoxedError;
-    use bollard::container::{LogOutput, LogsOptions};
     use bollard::Docker;
+    use bollard::container::{LogOutput, LogsOptions};
     use bytes::BytesMut;
     use futures::{Future, Stream};
     use pin_project_lite::pin_project;
