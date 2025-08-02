@@ -53,7 +53,8 @@ pub mod docker {
 
     use background_service::error::BoxedError;
     use bollard::Docker;
-    use bollard::container::{LogOutput, LogsOptions};
+    use bollard::container::LogOutput;
+    use bollard::query_parameters::LogsOptions;
     use bytes::BytesMut;
     use futures::{Future, Stream};
     use pin_project_lite::pin_project;
@@ -77,7 +78,7 @@ pub mod docker {
 
             let logs = docker.logs(
                 &container.clone(),
-                Some(LogsOptions::<String> {
+                Some(LogsOptions {
                     stderr: matches!(log_source, LogSource::Stderr | LogSource::All),
                     stdout: matches!(log_source, LogSource::Stdout | LogSource::All),
                     follow: true,

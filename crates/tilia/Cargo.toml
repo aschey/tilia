@@ -1,29 +1,27 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "tilia"
 version = "0.1.0"
 
 [dependencies]
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
-bytes = "1"
-futures = "0.3"
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-tokio = { version = "1", features = [
-    "sync",
-    "rt-multi-thread",
-    "macros",
-    "time",
-    "io-util",
+background-service = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+futures-cancel = { workspace = true }
+tokio = { workspace = true, features = [
+  "sync",
+  "rt-multi-thread",
+  "macros",
+  "time",
+  "io-util",
 ] }
-bollard = { version = "0.18", optional = true }
-pin-project-lite = { version = "0.2", optional = true }
-tokio-util = "0.7"
-transport-async = { git = "https://github.com/aschey/transport-async-rs", rev = "918af6562e6c80c74d0aeb71850dccfd388c6463", features = [
-    "codec",
-] }
+bollard = { workspace = true, optional = true }
+pin-project-lite = { workspace = true, optional = true }
+tokio-util = { workspace = true }
+transport-async = { workspace = true, features = ["codec"] }
 
-tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [features]
 tcp = ["transport-async/tcp"]

@@ -5,20 +5,17 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-bollard = { version = "0.18.1", features = ["buildkit"] }
-ctrlc = "3.4.5"
-flate2 = "1.0.35"
-futures = "0.3.31"
-ignore = "0.4.23"
-rand = "0.8.5"
-tar = "0.4.43"
-tilia = { path = "../crates/tilia", features = ["ipc", "docker"] }
-tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros"] }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = [
-    "registry",
-    "env-filter",
-] }
+bollard = { workspace = true, features = ["buildkit"] }
+ctrlc = { workspace = true }
+flate2 = { workspace = true }
+futures = { workspace = true }
+ignore = { workspace = true }
+rand = { workspace = true }
+tar = { workspace = true }
+tilia = { workspace = true, features = ["ipc", "docker"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["registry", "env-filter"] }
 
 [[bin]]
 name = "ipc"

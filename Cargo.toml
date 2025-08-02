@@ -1,3 +1,29 @@
 [workspace]
 members = ["crates/*", "examples"]
 resolver = "2"
+
+[workspace.dependencies]
+tilia = { path = "./crates/tilia" }
+tilia-widget = { path = "./crates/tilia-widget" }
+
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
+bytes = "1"
+futures = "0.3"
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+tokio = { version = "1" }
+bollard = { version = "0.19" }
+pin-project-lite = { version = "0.2" }
+tokio-util = "0.7"
+transport-async = { git = "https://github.com/aschey/transport-async-rs", rev = "918af6562e6c80c74d0aeb71850dccfd388c6463" }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+crossterm = { version = "0.28", features = ["event-stream"] }
+ratatui = "0.29"
+clap = { version = "4.5.26" }
+ansi-to-tui = "7"
+
+ctrlc = "3.4.5"
+flate2 = "1.0.35"
+ignore = "0.4.23"
+rand = "0.9.2"
+tar = "0.4.43"

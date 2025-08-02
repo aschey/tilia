@@ -6,12 +6,12 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ansi-to-tui = "7"
-crossterm = { version = "0.28" }
-tilia = { path = "../tilia" }
-tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
-ratatui = "0.29"
-futures = { version = "0.3" }
+ansi-to-tui = { workspace = true }
+crossterm = { workspace = true }
+tilia = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
+ratatui = { workspace = true }
+futures = { workspace = true }
 
 [features]
 tcp = ["tilia/tcp"]

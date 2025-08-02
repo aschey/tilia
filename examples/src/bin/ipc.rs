@@ -1,18 +1,18 @@
 use std::env::args;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use rand::seq::SliceRandom;
-use rand::{thread_rng, Rng};
+use rand::Rng;
+use rand::seq::IndexedRandom;
+use tilia::BoxedError;
+use tilia::transport_async::Bind;
 use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
 use tilia::transport_async::ipc::{self, OnConflict, SecurityAttributes, ServerId};
-use tilia::transport_async::Bind;
-use tilia::BoxedError;
-use tracing::{debug, error, info, trace, warn, Level};
+use tracing::{Level, debug, error, info, trace, warn};
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt::Layer;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<(), BoxedError> {
@@ -50,7 +50,7 @@ async fn main() -> Result<(), BoxedError> {
             })
             .init();
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let levels = [
             Level::TRACE,
             Level::DEBUG,
@@ -67,7 +67,7 @@ async fn main() -> Result<(), BoxedError> {
 
         while running.load(Ordering::SeqCst) {
             let level = levels.choose(&mut rng).expect("Empty levels").to_owned();
-            let sleep_seconds: f64 = rng.gen();
+            let sleep_seconds: f64 = rng.random();
             log(level, (sleep_seconds * 1000.0) as u64).await;
         }
         println!("\nStopping...");
