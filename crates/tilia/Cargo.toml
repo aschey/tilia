@@ -7,7 +7,6 @@ version = "0.1.0"
 background-service = { workspace = true }
 bytes = { workspace = true }
 futures = { workspace = true }
-futures-cancel = { workspace = true }
 tokio = { workspace = true, features = [
   "sync",
   "rt-multi-thread",

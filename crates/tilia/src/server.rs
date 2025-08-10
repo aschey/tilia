@@ -2,7 +2,7 @@ use background_service::error::BoxedError;
 use background_service::{BackgroundService, ServiceContext};
 use bytes::Bytes;
 use futures::{Sink, SinkExt, Stream, StreamExt};
-use futures_cancel::FutureExt;
+use tokio_util::future::FutureExt;
 
 use crate::history;
 
@@ -35,11 +35,18 @@ where
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let transport = self.transport;
         futures::pin_mut!(transport);
-        while let Ok(Some(Ok(mut client))) = transport.next().cancel_with(context.cancelled()).await
+        while let Some(Some(Ok(mut client))) = transport
+            .next()
+            .with_cancellation_token(context.cancellation_token())
+            .await
         {
             let mut rx = self.tx.subscribe();
             context.spawn(("request", |context: ServiceContext| async move {
-                while let Ok(Ok(msg)) = rx.recv().cancel_with(context.cancelled()).await {
+                while let Some(Ok(msg)) = rx
+                    .recv()
+                    .with_cancellation_token(context.cancellation_token())
+                    .await
+                {
                     let _ = client.send(Bytes::from(msg)).await;
                 }
                 Ok(())
